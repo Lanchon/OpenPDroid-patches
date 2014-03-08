@@ -1,3 +1,10 @@
+
+###Attention 
+** I am no longer maintaining the [auto-patcher](https://github.com/mateor/auto-patcher), as I can no longer vouch for the efficacy of this project. Maintaining OpenPDroid takes a firm grasp of what is going on within the Android rom culture and code and I cannot do that anymore. Better to gracefully shutter than let users down.**
+
+** I will, however, respond to github issues on the OpenPDroidPatches and [patchScripts](https://github.com/mateor/patchScripts), because if someone tech-savvy enough to build their own ROM wants to try the code, that is totally awesome :) I am considering even pushing the patches forward to Android 4.5, we'll see. But the one-click installation is ended, I would like people to migrate to more rigourously maintained solutions. Good luck, and thanks for everything! **
+
+
 ## OpenPdroid v1.0.1 for Android 4.4
 
 
