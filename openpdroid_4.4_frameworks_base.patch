@@ -1,58 +1,47 @@
 diff --git a/Android.mk b/Android.mk
-index 3359964..fdb5db5 100644
+index 9beff8b..0c5fdff 100644
 --- a/Android.mk
 +++ b/Android.mk
-@@ -52,6 +52,7 @@ LOCAL_SRC_FILES += \
- ## across process boundaries.
+@@ -53,4 +53,5 @@ LOCAL_SRC_FILES += \
  ##
  ## READ ME: ########################################################
 +# BEGIN privacy-added: IPrivacySettingsManager.aidl
  LOCAL_SRC_FILES += \
  	core/java/android/accessibilityservice/IAccessibilityServiceConnection.aidl \
- 	core/java/android/accessibilityservice/IAccessibilityServiceClient.aidl \
-@@ -258,6 +259,7 @@ LOCAL_SRC_FILES += \
- 	media/java/android/media/IRemoteControlDisplay.aidl \
+@@ -281,4 +282,5 @@ LOCAL_SRC_FILES += \
  	media/java/android/media/IRemoteVolumeObserver.aidl \
  	media/java/android/media/IRingtonePlayer.aidl \
 +     privacy/java/android/privacy/IPrivacySettingsManager.aidl \
  	telephony/java/com/android/internal/telephony/IPhoneStateListener.aidl \
  	telephony/java/com/android/internal/telephony/IPhoneSubInfo.aidl \
- 	telephony/java/com/android/internal/telephony/ITelephony.aidl \
-@@ -395,6 +397,7 @@ aidl_files := \
- 	frameworks/base/location/java/android/location/FusedBatchOptions.aidl \
+@@ -422,4 +424,5 @@ aidl_files := \
  	frameworks/base/location/java/com/android/internal/location/ProviderProperties.aidl \
  	frameworks/base/location/java/com/android/internal/location/ProviderRequest.aidl \
 +     frameworks/base/privacy/java/android/privacy/PrivacySettings.aidl \
  	frameworks/base/telephony/java/android/telephony/ServiceState.aidl \
  	frameworks/base/telephony/java/com/android/internal/telephony/IPhoneSubInfo.aidl \
- 	frameworks/base/telephony/java/com/android/internal/telephony/ITelephony.aidl \
 diff --git a/api/current.txt b/api/current.txt
-index b0450a4..0cabf3a 100644
+index 100b288..c977eef 100644
 --- a/api/current.txt
 +++ b/api/current.txt
-@@ -23092,6 +23092,7 @@ package android.telephony {
-   public final class CellInfoGsm extends android.telephony.CellInfo implements android.os.Parcelable {
+@@ -23098,4 +23098,5 @@ package android.telephony {
      method public android.telephony.CellIdentityGsm getCellIdentity();
      method public android.telephony.CellSignalStrengthGsm getCellSignalStrength();
 +    method public void setCellIdentity(android.telephony.CellIdentityGsm);
      method public void writeToParcel(android.os.Parcel, int);
      field public static final android.os.Parcelable.Creator CREATOR;
-   }
 diff --git a/core/java/android/app/ContextImpl.java b/core/java/android/app/ContextImpl.java
-index 767e46e..dc228ae 100644
+index 954960a..9a6d1ff 100644
 --- a/core/java/android/app/ContextImpl.java
 +++ b/core/java/android/app/ContextImpl.java
-@@ -66,7 +66,7 @@ import android.location.ILocationManager;
- import android.location.LocationManager;
+@@ -69,5 +69,5 @@ import android.location.LocationManager;
  import android.media.AudioManager;
  import android.media.MediaRouter;
 -import android.net.ConnectivityManager;
 +//import android.net.ConnectivityManager;
  import android.net.IConnectivityManager;
  import android.net.INetworkPolicyManager;
- import android.net.NetworkPolicyManager;
-@@ -124,6 +124,16 @@ import com.android.internal.annotations.GuardedBy;
- import com.android.internal.app.IAppOpsService;
+@@ -129,4 +129,14 @@ import com.android.internal.app.IAppOpsService;
  import com.android.internal.os.IDropBoxManagerService;
  
 +// BEGIN privacy-added
@@ -67,9 +56,7 @@ index 767e46e..dc228ae 100644
 +
  import java.io.File;
  import java.io.FileInputStream;
- import java.io.FileNotFoundException;
-@@ -195,6 +205,9 @@ class ContextImpl extends Context {
-     private Resources mResources;
+@@ -200,4 +210,7 @@ class ContextImpl extends Context {
      /*package*/ ActivityThread mMainThread;
      private Context mOuterContext;
 +    // BEGIN privacy-added
@@ -77,9 +64,7 @@ index 767e46e..dc228ae 100644
 +    // END privacy-added
      private IBinder mActivityToken = null;
      private ApplicationContentResolver mContentResolver;
-     private int mThemeResource = 0;
-@@ -326,7 +339,11 @@ class ContextImpl extends Context {
-                 public Object createService(ContextImpl ctx) {
+@@ -331,5 +344,9 @@ class ContextImpl extends Context {
                      IBinder b = ServiceManager.getService(ACCOUNT_SERVICE);
                      IAccountManager service = IAccountManager.Stub.asInterface(b);
 -                    return new AccountManager(ctx, service);
@@ -90,9 +75,7 @@ index 767e46e..dc228ae 100644
 +                    // END privacy-modified
                  }});
  
-         registerService(ACTIVITY_SERVICE, new ServiceFetcher() {
-@@ -365,7 +382,14 @@ class ContextImpl extends Context {
-         registerService(CONNECTIVITY_SERVICE, new StaticServiceFetcher() {
+@@ -370,5 +387,12 @@ class ContextImpl extends Context {
                  public Object createStaticService() {
                      IBinder b = ServiceManager.getService(CONNECTIVITY_SERVICE);
 -                    return new ConnectivityManager(IConnectivityManager.Stub.asInterface(b));
@@ -106,9 +89,7 @@ index 767e46e..dc228ae 100644
 +                    // END privacy-modified
                  }});
  
-         registerService(COUNTRY_DETECTOR, new StaticServiceFetcher() {
-@@ -431,8 +455,16 @@ class ContextImpl extends Context {
- 
+@@ -436,6 +460,14 @@ class ContextImpl extends Context {
          registerService(LOCATION_SERVICE, new ServiceFetcher() {
                  public Object createService(ContextImpl ctx) {
 -                    IBinder b = ServiceManager.getService(LOCATION_SERVICE);
@@ -125,9 +106,7 @@ index 767e46e..dc228ae 100644
 +    	            // END privacy-modified                    
                  }});
  
-         registerService(NETWORK_POLICY_SERVICE, new ServiceFetcher() {
-@@ -505,7 +537,11 @@ class ContextImpl extends Context {
- 
+@@ -510,5 +542,9 @@ class ContextImpl extends Context {
          registerService(TELEPHONY_SERVICE, new ServiceFetcher() {
                  public Object createService(ContextImpl ctx) {
 -                    return new TelephonyManager(ctx.getOuterContext());
@@ -138,9 +117,7 @@ index 767e46e..dc228ae 100644
 +                    // END privacy-modified
                  }});
  
-         registerService(UI_MODE_SERVICE, new ServiceFetcher() {
-@@ -536,7 +572,11 @@ class ContextImpl extends Context {
-                 public Object createService(ContextImpl ctx) {
+@@ -546,5 +582,9 @@ class ContextImpl extends Context {
                      IBinder b = ServiceManager.getService(WIFI_SERVICE);
                      IWifiManager service = IWifiManager.Stub.asInterface(b);
 -                    return new WifiManager(ctx.getOuterContext(), service);
@@ -151,9 +128,7 @@ index 767e46e..dc228ae 100644
 +                    // END privacy-modified
                  }});
  
-         registerService(WIFI_P2P_SERVICE, new ServiceFetcher() {
-@@ -546,6 +586,16 @@ class ContextImpl extends Context {
-                     return new WifiP2pManager(service);
+@@ -556,4 +596,14 @@ class ContextImpl extends Context {
                  }});
  
 +        // BEGIN privacy-added
@@ -168,9 +143,7 @@ index 767e46e..dc228ae 100644
 +
          registerService(WINDOW_SERVICE, new ServiceFetcher() {
                  Display mDefaultDisplay;
-                 public Object getService(ContextImpl ctx) {
-@@ -2009,7 +2059,10 @@ class ContextImpl extends Context {
-     }
+@@ -2026,5 +2076,8 @@ class ContextImpl extends Context {
  
      ContextImpl() {
 -        mOuterContext = this;
@@ -180,9 +153,7 @@ index 767e46e..dc228ae 100644
 +        sOuterContext = mOuterContext = this;
      }
  
-     /**
-@@ -2028,7 +2081,14 @@ class ContextImpl extends Context {
-         mUser = context.mUser;
+@@ -2045,5 +2098,12 @@ class ContextImpl extends Context {
          mDisplay = context.mDisplay;
          mOuterContext = this;
 -        mDisplayAdjustments.setCompatibilityInfo(mPackageInfo.getCompatibilityInfo());
@@ -196,9 +167,7 @@ index 767e46e..dc228ae 100644
 +        // END privacy
      }
  
-     final void init(LoadedApk packageInfo, IBinder activityToken, ActivityThread mainThread) {
-@@ -2110,13 +2170,21 @@ class ContextImpl extends Context {
-     }
+@@ -2127,5 +2187,9 @@ class ContextImpl extends Context {
  
      final void setOuterContext(Context context) {
 -        mOuterContext = context;
@@ -209,8 +178,7 @@ index 767e46e..dc228ae 100644
 +        sOuterContext = mOuterContext = context;
      }
  
-     final Context getOuterContext() {
-         return mOuterContext;
+@@ -2134,4 +2198,8 @@ class ContextImpl extends Context {
      }
  
 +    final static Context getStaticOuterContext() {
@@ -219,13 +187,11 @@ index 767e46e..dc228ae 100644
 +
      final IBinder getActivityToken() {
          return mActivityToken;
-     }
 diff --git a/core/java/android/app/Instrumentation.java b/core/java/android/app/Instrumentation.java
 index a307a73..98548fb 100644
 --- a/core/java/android/app/Instrumentation.java
 +++ b/core/java/android/app/Instrumentation.java
-@@ -16,6 +16,13 @@
- 
+@@ -17,4 +17,11 @@
  package android.app;
  
 +// BEGIN privacy additions
@@ -237,9 +203,7 @@ index a307a73..98548fb 100644
 +
  import android.content.ActivityNotFoundException;
  import android.content.ComponentName;
- import android.content.Context;
-@@ -92,6 +99,10 @@ public class Instrumentation {
-     private Bundle mPerfMetrics = new Bundle();
+@@ -93,4 +100,8 @@ public class Instrumentation {
      private UiAutomation mUiAutomation;
  
 +     // BEGIN privacy added
@@ -248,9 +212,7 @@ index a307a73..98548fb 100644
 +
      public Instrumentation() {
      }
- 
-@@ -1398,6 +1409,79 @@ public class Instrumentation {
-             Context who, IBinder contextThread, IBinder token, Activity target,
+@@ -1399,4 +1410,77 @@ public class Instrumentation {
              Intent intent, int requestCode, Bundle options) {
          IApplicationThread whoThread = (IApplicationThread) contextThread;
 +        
@@ -328,9 +290,7 @@ index a307a73..98548fb 100644
 +        
          if (mActivityMonitors != null) {
              synchronized (mSync) {
-                 final int N = mActivityMonitors.size();
-@@ -1413,6 +1497,16 @@ public class Instrumentation {
-                 }
+@@ -1414,4 +1498,14 @@ public class Instrumentation {
              }
          }
 +        
@@ -345,9 +305,7 @@ index a307a73..98548fb 100644
 +        
          try {
              intent.migrateExtraStreamToClipData();
-             intent.prepareToLeaveProcess();
-@@ -1453,6 +1547,109 @@ public class Instrumentation {
-             IBinder token, Activity target, Intent[] intents, Bundle options,
+@@ -1454,4 +1548,107 @@ public class Instrumentation {
              int userId) {
          IApplicationThread whoThread = (IApplicationThread) contextThread;
 +
@@ -455,9 +413,7 @@ index a307a73..98548fb 100644
 +        
          if (mActivityMonitors != null) {
              synchronized (mSync) {
-                 final int N = mActivityMonitors.size();
-@@ -1515,6 +1712,77 @@ public class Instrumentation {
-         Context who, IBinder contextThread, IBinder token, Fragment target,
+@@ -1516,4 +1713,75 @@ public class Instrumentation {
          Intent intent, int requestCode, Bundle options) {
          IApplicationThread whoThread = (IApplicationThread) contextThread;
 +        // BEGIN privacy-added
@@ -533,9 +489,7 @@ index a307a73..98548fb 100644
 +        
          if (mActivityMonitors != null) {
              synchronized (mSync) {
-                 final int N = mActivityMonitors.size();
-@@ -1530,6 +1798,16 @@ public class Instrumentation {
-                 }
+@@ -1531,4 +1799,14 @@ public class Instrumentation {
              }
          }
 +        
@@ -550,9 +504,7 @@ index a307a73..98548fb 100644
 +        
          try {
              intent.migrateExtraStreamToClipData();
-             intent.prepareToLeaveProcess();
-@@ -1575,6 +1853,78 @@ public class Instrumentation {
-             Context who, IBinder contextThread, IBinder token, Activity target,
+@@ -1576,4 +1854,76 @@ public class Instrumentation {
              Intent intent, int requestCode, Bundle options, UserHandle user) {
          IApplicationThread whoThread = (IApplicationThread) contextThread;
 +        
@@ -629,9 +581,7 @@ index a307a73..98548fb 100644
 +        
          if (mActivityMonitors != null) {
              synchronized (mSync) {
-                 final int N = mActivityMonitors.size();
-@@ -1590,6 +1940,16 @@ public class Instrumentation {
-                 }
+@@ -1591,4 +1941,14 @@ public class Instrumentation {
              }
          }
 +        
@@ -646,13 +596,11 @@ index a307a73..98548fb 100644
 +        
          try {
              intent.migrateExtraStreamToClipData();
-             intent.prepareToLeaveProcess();
 diff --git a/core/java/android/content/ContentResolver.java b/core/java/android/content/ContentResolver.java
 index 4e6cc92..dbf218f 100644
 --- a/core/java/android/content/ContentResolver.java
 +++ b/core/java/android/content/ContentResolver.java
-@@ -45,6 +45,10 @@ import android.util.Log;
- 
+@@ -46,4 +46,8 @@ import android.util.Log;
  import dalvik.system.CloseGuard;
  
 +// BEGIN privacy-added
@@ -661,9 +609,7 @@ index 4e6cc92..dbf218f 100644
 +
  import java.io.File;
  import java.io.FileInputStream;
- import java.io.FileNotFoundException;
-@@ -460,6 +464,10 @@ public abstract class ContentResolver {
-             try {
+@@ -461,4 +465,8 @@ public abstract class ContentResolver {
                  qCursor = unstableProvider.query(mPackageName, uri, projection,
                          selection, selectionArgs, sortOrder, remoteCancellationSignal);
 +                // BEGIN privacy-added
@@ -672,9 +618,7 @@ index 4e6cc92..dbf218f 100644
 +                // END privacy-added
              } catch (DeadObjectException e) {
                  // The remote process has died...  but we only hold an unstable
-                 // reference though, so we might recover!!!  Let's try!!!!
-@@ -471,6 +479,11 @@ public abstract class ContentResolver {
-                 }
+@@ -472,4 +480,9 @@ public abstract class ContentResolver {
                  qCursor = stableProvider.query(mPackageName, uri, projection,
                          selection, selectionArgs, sortOrder, remoteCancellationSignal);
 +                // BEGIN privacy-added
@@ -684,13 +628,11 @@ index 4e6cc92..dbf218f 100644
 +
              }
              if (qCursor == null) {
-                 return null;
 diff --git a/core/java/android/hardware/Camera.java b/core/java/android/hardware/Camera.java
-index f26d02a..21b9326 100644
+index 0764445..0a1ef26 100644
 --- a/core/java/android/hardware/Camera.java
 +++ b/core/java/android/hardware/Camera.java
-@@ -48,6 +48,26 @@ import java.util.HashMap;
- import java.util.List;
+@@ -49,4 +49,24 @@ import java.util.List;
  import java.util.concurrent.locks.ReentrantLock;
  
 +///////////////////////////////////////////////////////
@@ -715,9 +657,7 @@ index f26d02a..21b9326 100644
 +
  /**
   * The Camera class is used to set image capture settings, start/stop preview,
-  * snap pictures, and retrieve frames for encoding for video.  This class is a
-@@ -177,6 +197,157 @@ public class Camera {
-     private CameraMetaDataCallback mCameraMetaDataCallback;
+@@ -178,4 +198,155 @@ public class Camera {
      /* ### QC ADD-ONS: END */
  
 +
@@ -873,9 +813,7 @@ index f26d02a..21b9326 100644
 +
      /**
       * Broadcast Action:  A new picture is taken by the camera, and the entry of
-      * the picture has been added to the media store.
-@@ -359,6 +530,14 @@ public class Camera {
-         mCameraMetaDataCallback = null;
+@@ -360,4 +531,12 @@ public class Camera {
          /* ### QC ADD-ONS: END */
  
 +	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -888,9 +826,7 @@ index f26d02a..21b9326 100644
 +
          Looper looper;
          if ((looper = Looper.myLooper()) != null) {
-             mEventHandler = new EventHandler(this, looper);
-@@ -922,6 +1101,27 @@ public class Camera {
- 
+@@ -923,4 +1102,25 @@ public class Camera {
          @Override
          public void handleMessage(Message msg) {
 +	    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -916,9 +852,7 @@ index f26d02a..21b9326 100644
 +
              switch(msg.what) {
              case CAMERA_MSG_SHUTTER:
-                 if (mShutterCallback != null) {
-@@ -931,13 +1131,19 @@ public class Camera {
- 
+@@ -932,5 +1132,8 @@ public class Camera {
              case CAMERA_MSG_RAW_IMAGE:
                  if (mRawImageCallback != null) {
 -                    mRawImageCallback.onPictureTaken((byte[])msg.obj, mCamera);
@@ -928,7 +862,7 @@ index f26d02a..21b9326 100644
 +			mRawImageCallback.onPictureTaken(null, mCamera);//this normally doesn't get a call, because we disabled this receiver in takepicture method!
                  }
                  return;
- 
+@@ -938,5 +1141,8 @@ public class Camera {
              case CAMERA_MSG_COMPRESSED_IMAGE:
                  if (mJpegCallback != null) {
 -                    mJpegCallback.onPictureTaken((byte[])msg.obj, mCamera);
@@ -938,9 +872,7 @@ index f26d02a..21b9326 100644
 +			mJpegCallback.onPictureTaken(getFakeImage(), mCamera);
                  }
                  return;
- 
-@@ -955,13 +1161,21 @@ public class Camera {
-                         // Set to oneshot mode again.
+@@ -956,5 +1162,9 @@ public class Camera {
                          setHasPreviewCallback(true, false);
                      }
 -                    pCb.onPreviewFrame((byte[])msg.obj, mCamera);
@@ -951,7 +883,7 @@ index f26d02a..21b9326 100644
 +                        pCb.onPreviewFrame(getFakeImage(), mCamera);//here we go testing if it is able to give preview of fake image, if it doesn't work -> pass null
                  }
                  return;
- 
+@@ -962,5 +1172,9 @@ public class Camera {
              case CAMERA_MSG_POSTVIEW_FRAME:
                  if (mPostviewCallback != null) {
 -                    mPostviewCallback.onPictureTaken((byte[])msg.obj, mCamera);
@@ -962,18 +894,14 @@ index f26d02a..21b9326 100644
 +                        mPostviewCallback.onPictureTaken(getFakeImage(), mCamera);//same as in onpreviewframe -> give test fake image
                  }
                  return;
- 
-@@ -1022,6 +1236,8 @@ public class Camera {
-                 return;
+@@ -1023,4 +1237,6 @@ public class Camera {
              }
          }
 +        //END PRIVACY
 +        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
      }
  
-     private static void postEventFromNative(Object camera_ref,
-@@ -1271,6 +1487,28 @@ public class Camera {
-         mPostviewCallback = postview;
+@@ -1272,4 +1488,26 @@ public class Camera {
          mJpegCallback = jpeg;
  
 +
@@ -1000,13 +928,11 @@ index f26d02a..21b9326 100644
 +
          // If callback is not set, do not send me callbacks.
          int msgType = 0;
-         if (mShutterCallback != null) {
 diff --git a/core/java/android/net/NetworkInfo.java b/core/java/android/net/NetworkInfo.java
 index 4d2a70d..8b3de44 100644
 --- a/core/java/android/net/NetworkInfo.java
 +++ b/core/java/android/net/NetworkInfo.java
-@@ -171,6 +171,14 @@ public class NetworkInfo implements Parcelable {
-         }
+@@ -172,4 +172,12 @@ public class NetworkInfo implements Parcelable {
      }
  
 +    // BEGIN privacy-added
@@ -1019,13 +945,11 @@ index 4d2a70d..8b3de44 100644
 +
      /**
       * Reports the type of network to which the
-      * info in this {@code NetworkInfo} pertains.
 diff --git a/core/java/android/os/SystemProperties.java b/core/java/android/os/SystemProperties.java
 index 5a79122..f2ab25e 100644
 --- a/core/java/android/os/SystemProperties.java
 +++ b/core/java/android/os/SystemProperties.java
-@@ -21,6 +21,22 @@ import java.util.ArrayList;
- 
+@@ -22,4 +22,20 @@ import java.util.ArrayList;
  import android.util.Log;
  
 +//-----------------------------------------------------------
@@ -1046,9 +970,7 @@ index 5a79122..f2ab25e 100644
 +
  
  /**
-  * Gives access to the system properties store.  The system properties
-@@ -43,6 +59,128 @@ public class SystemProperties
-     private static native void native_set(String key, String def);
+@@ -44,4 +60,126 @@ public class SystemProperties
      private static native void native_add_change_callback();
  
 +    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1175,9 +1097,7 @@ index 5a79122..f2ab25e 100644
 +
      /**
       * Get the value for the given key.
-      * @return an empty string if the key isn't found
-@@ -52,6 +190,15 @@ public class SystemProperties
-         if (key.length() > PROP_NAME_MAX) {
+@@ -53,4 +191,13 @@ public class SystemProperties
              throw new IllegalArgumentException("key.length > " + PROP_NAME_MAX);
          }
 +        if (key.equals(TelephonyProperties.PROPERTY_OPERATOR_ALPHA)   || 
@@ -1191,9 +1111,7 @@ index 5a79122..f2ab25e 100644
 +	}
          return native_get(key);
      }
- 
-@@ -64,6 +211,15 @@ public class SystemProperties
-         if (key.length() > PROP_NAME_MAX) {
+@@ -65,4 +212,13 @@ public class SystemProperties
              throw new IllegalArgumentException("key.length > " + PROP_NAME_MAX);
          }
 +	if (key.equals(TelephonyProperties.PROPERTY_OPERATOR_ALPHA)   || 
@@ -1207,13 +1125,11 @@ index 5a79122..f2ab25e 100644
 +	}
          return native_get(key, def);
      }
- 
 diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
-index 9d33e95..81a3440 100644
+index 9c35cf7..b8b22e9 100644
 --- a/core/java/android/provider/Settings.java
 +++ b/core/java/android/provider/Settings.java
-@@ -59,6 +59,17 @@ import java.util.HashMap;
- import java.util.HashSet;
+@@ -62,4 +62,15 @@ import java.util.HashSet;
  import java.util.Locale;
  
 +//////////////////////////////////////////////////
@@ -1229,9 +1145,7 @@ index 9d33e95..81a3440 100644
 +
  /**
   * The Settings provider contains global system-level device preferences.
-  */
-@@ -3769,6 +3780,46 @@ public final class Settings {
-                 }
+@@ -3993,4 +4004,44 @@ public final class Settings {
              }
  
 +            
@@ -1276,9 +1190,7 @@ index 9d33e95..81a3440 100644
 +
              return sNameValueCache.getStringForUser(resolver, name, userHandle);
          }
- 
-@@ -4084,7 +4135,71 @@ public final class Settings {
-                 int userHandle) {
+@@ -4308,5 +4359,69 @@ public final class Settings {
              return putStringForUser(cr, name, Float.toString(value), userHandle);
          }
 -
@@ -1349,13 +1261,11 @@ index 9d33e95..81a3440 100644
 +        
          /**
           * @deprecated Use {@link android.provider.Settings.Global#DEVELOPMENT_SETTINGS_ENABLED}
-          * instead
 diff --git a/core/java/android/speech/srec/MicrophoneInputStream.java b/core/java/android/speech/srec/MicrophoneInputStream.java
 index fab77a9..b0f5f9c 100644
 --- a/core/java/android/speech/srec/MicrophoneInputStream.java
 +++ b/core/java/android/speech/srec/MicrophoneInputStream.java
-@@ -24,6 +24,20 @@ import java.io.IOException;
- import java.io.InputStream;
+@@ -25,4 +25,18 @@ import java.io.InputStream;
  import java.lang.IllegalStateException;
  
 +//BEGIN PRIVACY
@@ -1374,9 +1284,7 @@ index fab77a9..b0f5f9c 100644
 +
  
  /**
-  * PCM input stream from the microphone, 16 bits per sample.
-@@ -32,11 +46,137 @@ public final class MicrophoneInputStream extends InputStream {
-     static {
+@@ -33,9 +47,135 @@ public final class MicrophoneInputStream extends InputStream {
          System.loadLibrary("srec_jni");
      }
 +
@@ -1512,9 +1420,7 @@ index fab77a9..b0f5f9c 100644
 +
      /**
       * MicrophoneInputStream constructor.
-      * @param sampleRate sample rate of the microphone, typically 11025 or 8000.
-@@ -44,6 +184,28 @@ public final class MicrophoneInputStream extends InputStream {
-      * This determines how long an application may delay before losing data.
+@@ -45,4 +185,26 @@ public final class MicrophoneInputStream extends InputStream {
       */
      public MicrophoneInputStream(int sampleRate, int fifoDepth) throws IOException {
 +
@@ -1541,13 +1447,11 @@ index fab77a9..b0f5f9c 100644
 +
          mAudioRecord = AudioRecordNew(sampleRate, fifoDepth);
          if (mAudioRecord == 0) throw new IOException("AudioRecord constructor failed - busy?");
-         int status = AudioRecordStart(mAudioRecord);
 diff --git a/media/java/android/media/AudioRecord.java b/media/java/android/media/AudioRecord.java
-index f49ef2e..6773889 100644
+index 0b6475c..0eeb62c 100644
 --- a/media/java/android/media/AudioRecord.java
 +++ b/media/java/android/media/AudioRecord.java
-@@ -24,6 +24,22 @@ import android.os.Looper;
- import android.os.Message;
+@@ -32,4 +32,20 @@ import android.os.Message;
  import android.util.Log;
  
 +////////////////////////////////////////////
@@ -1568,9 +1472,7 @@ index f49ef2e..6773889 100644
 +
  /**
   * The AudioRecord class manages the audio resources for Java applications
-  * to record audio from the audio input hardware of the platform. This is
-@@ -181,6 +197,28 @@ public class AudioRecord
-      */
+@@ -189,4 +205,26 @@ public class AudioRecord
      private int mSessionId = 0;
  
 +
@@ -1597,9 +1499,7 @@ index f49ef2e..6773889 100644
 +
      //---------------------------------------------------------
      // Constructor, Finalize
-     //--------------------
-@@ -232,12 +270,125 @@ public class AudioRecord
-             return; // with mState == STATE_UNINITIALIZED
+@@ -240,4 +278,12 @@ public class AudioRecord
          }
  
 +	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1612,8 +1512,7 @@ index f49ef2e..6773889 100644
 +
          mSessionId = session[0];
  
-         mState = STATE_INITIALIZED;
-     }
+@@ -246,4 +292,109 @@ public class AudioRecord
  
  
 +    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1723,22 +1622,19 @@ index f49ef2e..6773889 100644
 +
      // Convenience method for the constructor's parameter checks.
      // This is where constructor IllegalArgumentException-s are thrown
-     // postconditions:
-@@ -502,10 +653,26 @@ public class AudioRecord
-      */
+@@ -551,8 +702,24 @@ public class AudioRecord
      public void startRecording()
      throws IllegalStateException {
 -        if (mState != STATE_INITIALIZED) {
 -            throw new IllegalStateException("startRecording() called on an "
 -                    + "uninitialized AudioRecord.");
--        }
 +
 +        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 +        //BEGIN PRIVACY
 +        //now check if everything was ok in constructor!
 +        if(!privacyMode){
 +           initiate();
-+        }
+         }
 +        if ((mState != STATE_INITIALIZED) || (checkIfPackagesAllowed() == IS_NOT_ALLOWED)) { //If applicaton is not allowed -> throw exception!
 +            dataAccess(false);
 +	    String packageName[] = getPackageName();
@@ -1753,20 +1649,18 @@ index f49ef2e..6773889 100644
 +        //END PRIVACY
 +        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  
-         // start recording
-         synchronized(mRecordingStateLock) {
+         // check user permission
 diff --git a/media/java/android/media/MediaRecorder.java b/media/java/android/media/MediaRecorder.java
-index 8dcbd6b..7e08dd6 100644
+index f81fa40..20aa2ab 100644
 --- a/media/java/android/media/MediaRecorder.java
 +++ b/media/java/android/media/MediaRecorder.java
-@@ -23,12 +23,27 @@ import android.os.Looper;
- import android.os.Message;
+@@ -27,5 +27,4 @@ import android.os.Message;
  import android.util.Log;
  import android.view.Surface;
 -
  import java.io.FileDescriptor;
  import java.io.FileOutputStream;
- import java.io.IOException;
+@@ -33,4 +32,20 @@ import java.io.IOException;
  import java.lang.ref.WeakReference;
  
 +///////////////////////////////////////////
@@ -1787,9 +1681,7 @@ index 8dcbd6b..7e08dd6 100644
 +
  /**
   * Used to record audio and video. The recording control is based on a
-  * simple state machine (see below).
-@@ -92,6 +107,68 @@ public class MediaRecorder
-     private OnErrorListener mOnErrorListener;
+@@ -96,4 +111,66 @@ public class MediaRecorder
      private OnInfoListener mOnInfoListener;
  
 +
@@ -1856,9 +1748,7 @@ index 8dcbd6b..7e08dd6 100644
 +
      /**
       * Default constructor.
-      */
-@@ -106,6 +183,10 @@ public class MediaRecorder
-             mEventHandler = null;
+@@ -110,4 +187,8 @@ public class MediaRecorder
          }
  
 +        //BEGIN PRIVACY
@@ -1867,9 +1757,7 @@ index 8dcbd6b..7e08dd6 100644
 +
          String packageName = ActivityThread.currentPackageName();
          /* Native setup requires a weak reference to our object.
-          * It's easier to create it here than in C++.
-@@ -137,9 +218,300 @@ public class MediaRecorder
-      * @see android.hardware.Camera#setPreviewDisplay(android.view.SurfaceHolder)
+@@ -141,7 +222,298 @@ public class MediaRecorder
       */
      public void setPreviewDisplay(Surface sv) {
 +
@@ -2168,9 +2056,7 @@ index 8dcbd6b..7e08dd6 100644
 +
      /**
       * Defines the audio source. These constants are used with
-      * {@link MediaRecorder#setAudioSource(int)}.
-@@ -354,6 +726,13 @@ public class MediaRecorder
-      * @see android.media.CamcorderProfile
+@@ -378,4 +750,11 @@ public class MediaRecorder
       */
      public void setProfile(CamcorderProfile profile) {
 +
@@ -2182,9 +2068,7 @@ index 8dcbd6b..7e08dd6 100644
 +
          setOutputFormat(profile.fileFormat);
          setVideoFrameRate(profile.videoFrameRate);
-         setVideoSize(profile.videoFrameWidth, profile.videoFrameHeight);
-@@ -388,6 +767,13 @@ public class MediaRecorder
-      * possible.
+@@ -412,4 +791,11 @@ public class MediaRecorder
       */
      public void setCaptureRate(double fps) {
 +
@@ -2196,9 +2080,7 @@ index 8dcbd6b..7e08dd6 100644
 +
          // Make sure that time lapse is enabled when this method is called.
          setParameter("time-lapse-enable=1");
- 
-@@ -615,6 +1001,13 @@ public class MediaRecorder
-      * @param bitRate the video encoding bit rate in bits per second.
+@@ -639,4 +1025,11 @@ public class MediaRecorder
       */
      public void setVideoEncodingBitRate(int bitRate) {
 +
@@ -2210,25 +2092,19 @@ index 8dcbd6b..7e08dd6 100644
 +
          if (bitRate <= 0) {
              throw new IllegalArgumentException("Video encoding bit rate is not positive");
-         }
-@@ -655,6 +1048,7 @@ public class MediaRecorder
-     {
+@@ -679,4 +1072,5 @@ public class MediaRecorder
          mPath = null;
          mFd = fd;
 +        deletedFile = false;
      }
  
-     /**
-@@ -669,6 +1063,7 @@ public class MediaRecorder
-     {
+@@ -693,4 +1087,5 @@ public class MediaRecorder
          mFd = null;
          mPath = path;
 +        deletedFile = false;
      }
  
-     // native implementation
-@@ -687,6 +1082,78 @@ public class MediaRecorder
-      */
+@@ -711,4 +1106,76 @@ public class MediaRecorder
      public void prepare() throws IllegalStateException, IOException
      {
 +
@@ -2305,9 +2181,7 @@ index 8dcbd6b..7e08dd6 100644
 +
          if (mPath != null) {
              FileOutputStream fos = new FileOutputStream(mPath);
-             try {
-@@ -739,7 +1206,24 @@ public class MediaRecorder
-      */
+@@ -767,5 +1234,22 @@ public class MediaRecorder
      public void reset() {
          native_reset();
 -
@@ -2331,9 +2205,7 @@ index 8dcbd6b..7e08dd6 100644
 +        //
          // make sure none of the listeners get called anymore
          mEventHandler.removeCallbacksAndMessages(null);
-     }
-@@ -1021,5 +1505,81 @@ public class MediaRecorder
-     private native void setParameter(String nameValuePair);
+@@ -1049,4 +1533,80 @@ public class MediaRecorder
  
      @Override
 -    protected void finalize() { native_finalize(); }
@@ -2419,8 +2291,7 @@ diff --git a/preloaded-classes b/preloaded-classes
 index 467da25..db72a1e 100644
 --- a/preloaded-classes
 +++ b/preloaded-classes
-@@ -2,6 +2,19 @@
- # Automatically generated by frameworks/base/tools/preload/WritePreloadedClassFile.java.
+@@ -3,4 +3,17 @@
  # MIN_LOAD_TIME_MICROS=1250
  # MIN_PROCESSES=10
 +# BEGIN PRIVACY
@@ -2438,7 +2309,6 @@ index 467da25..db72a1e 100644
 +# END PRIVACY
  android.R$styleable
  android.accounts.Account
- android.accounts.Account$1
 diff --git a/privacy/java/android/privacy/IPrivacySettingsManager.aidl b/privacy/java/android/privacy/IPrivacySettingsManager.aidl
 new file mode 100644
 index 0000000..de375c6
@@ -8587,11 +8457,10 @@ index 0000000..d0c5805
 +    }
 +}
 diff --git a/services/java/com/android/server/SystemServer.java b/services/java/com/android/server/SystemServer.java
-index 5e38685..a256be6 100644
+index 8ee9eef..a8aebc2 100644
 --- a/services/java/com/android/server/SystemServer.java
 +++ b/services/java/com/android/server/SystemServer.java
-@@ -17,6 +17,11 @@
- 
+@@ -20,4 +20,9 @@
  package com.android.server;
  
 +// BEGIN privacy-added
@@ -8601,9 +8470,7 @@ index 5e38685..a256be6 100644
 +
  import android.app.ActivityManagerNative;
  import android.bluetooth.BluetoothAdapter;
- import android.content.ComponentName;
-@@ -232,7 +237,10 @@ class ServerThread {
-             ServiceManager.addService(Context.DISPLAY_SERVICE, display, true);
+@@ -265,5 +270,8 @@ class ServerThread {
  
              Slog.i(TAG, "Telephony Registry");
 -            telephonyRegistry = new TelephonyRegistry(context);
@@ -8613,9 +8480,7 @@ index 5e38685..a256be6 100644
 +            // END privacy-modified
              ServiceManager.addService("telephony.registry", telephonyRegistry);
  
-             Slog.i(TAG, "Scheduling Policy");
-@@ -288,6 +296,10 @@ class ServerThread {
-             Slog.i(TAG, "Content Manager");
+@@ -327,4 +335,8 @@ class ServerThread {
              contentService = ContentService.main(context,
                      factoryTest == SystemServer.FACTORY_TEST_LOW_LEVEL);
 +	    
@@ -8624,9 +8489,7 @@ index 5e38685..a256be6 100644
 +            // END privacy-added
  
              Slog.i(TAG, "System Content Providers");
-             ActivityManagerService.installSystemProviders();
-@@ -1154,6 +1166,19 @@ class ServerThread {
-         //Slog.d(TAG, "Starting service: " + intent);
+@@ -1265,4 +1277,17 @@ class ServerThread {
          context.startServiceAsUser(intent, UserHandle.OWNER);
      }
 +
@@ -8644,13 +8507,11 @@ index 5e38685..a256be6 100644
 +
  }
  
- public class SystemServer {
 diff --git a/services/java/com/android/server/TelephonyRegistry.java b/services/java/com/android/server/TelephonyRegistry.java
-index 699d79e..fbc2538 100644
+index 1845486..09b91ce 100644
 --- a/services/java/com/android/server/TelephonyRegistry.java
 +++ b/services/java/com/android/server/TelephonyRegistry.java
-@@ -63,7 +63,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-     private static final boolean DBG = false;
+@@ -65,5 +65,8 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      private static final boolean DBG_LOC = false;
  
 -    private static class Record {
@@ -8660,9 +8521,7 @@ index 699d79e..fbc2538 100644
 +    // END privacy-modified
          String pkgForDebug;
  
-         IBinder binder;
-@@ -81,29 +84,32 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-         }
+@@ -83,27 +86,30 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      }
  
 -    private final Context mContext;
@@ -8704,9 +8563,7 @@ index 699d79e..fbc2538 100644
 +    protected int mDataConnectionState = TelephonyManager.DATA_UNKNOWN;
  
      private boolean mDataConnectionPossible = false;
- 
-@@ -117,14 +123,14 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
- 
+@@ -119,12 +125,12 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      private LinkCapabilities mDataConnectionLinkCapabilities;
  
 -    private Bundle mCellLocation = new Bundle();
@@ -8724,9 +8581,7 @@ index 699d79e..fbc2538 100644
 +    // END privacy-modified
      static final int PHONE_STATE_PERMISSION_MASK =
                  PhoneStateListener.LISTEN_CALL_FORWARDING_INDICATOR |
-                 PhoneStateListener.LISTEN_CALL_STATE |
-@@ -165,7 +171,11 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-     // calls go through a oneway interface and local calls going through a
+@@ -167,5 +173,9 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      // handler before they get to app code.
  
 -    TelephonyRegistry(Context context) {
@@ -8737,9 +8592,7 @@ index 699d79e..fbc2538 100644
 +    // END privacy-modified
          CellLocation  location = CellLocation.getEmpty();
  
-         // Note that location can be null for non-phone builds like
-@@ -312,7 +322,11 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-         }
+@@ -314,5 +324,9 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      }
  
 -    private void remove(IBinder binder) {
@@ -8750,9 +8603,7 @@ index 699d79e..fbc2538 100644
 +    // END privacy-modified
          synchronized (mRecords) {
              final int recordCount = mRecords.size();
-             for (int i = 0; i < recordCount; i++) {
-@@ -351,9 +365,15 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-         }
+@@ -353,7 +367,13 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
          synchronized (mRecords) {
              mServiceState = state;
 +            // BEGIN privacy-added
@@ -8766,9 +8617,7 @@ index 699d79e..fbc2538 100644
 +			            // END privacy-added
                          r.callback.onServiceStateChanged(new ServiceState(state));
                      } catch (RemoteException ex) {
-                         mRemoveList.add(r.binder);
-@@ -639,7 +659,11 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-     // the legacy intent broadcasting
+@@ -641,5 +661,9 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      //
  
 -    private void broadcastServiceStateChanged(ServiceState state) {
@@ -8776,12 +8625,10 @@ index 699d79e..fbc2538 100644
 +    // made protected to allow subclassing
 +    // private void broadcastServiceStateChanged(ServiceState state) {
 +    protected void broadcastServiceStateChanged(ServiceState state) {
-+    // END privacy-modified
-         long ident = Binder.clearCallingIdentity();
-         try {
-             mBatteryStats.notePhoneState(state.getState());
-@@ -738,7 +762,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-         mContext.sendStickyBroadcastAsUser(intent, UserHandle.ALL);
++    // END privacy-modifiedprivate void broadcastServiceStateChanged(ServiceState state) {
+         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+         // Return from here as this intent will be sent anyway from MSimTelephonyRegistry
+@@ -760,5 +784,8 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      }
  
 -    private boolean checkNotifyPermission(String method) {
@@ -8791,9 +8638,7 @@ index 699d79e..fbc2538 100644
 +    // END privacy-modified
          if (mContext.checkCallingOrSelfPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
                  == PackageManager.PERMISSION_GRANTED) {
-             return true;
-@@ -749,7 +776,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-         return false;
+@@ -771,5 +798,8 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      }
  
 -    private void checkListenerPermission(int events) {
@@ -8803,9 +8648,7 @@ index 699d79e..fbc2538 100644
 +    // END privacy-modified
          if ((events & PhoneStateListener.LISTEN_CELL_LOCATION) != 0) {
              mContext.enforceCallingOrSelfPermission(
-                     android.Manifest.permission.ACCESS_COARSE_LOCATION, null);
-@@ -768,7 +798,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-         }
+@@ -790,5 +820,8 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      }
  
 -    private void handleRemoveListLocked() {
@@ -8815,22 +8658,18 @@ index 699d79e..fbc2538 100644
 +    // END privacy-modified
          if (mRemoveList.size() > 0) {
              for (IBinder b: mRemoveList) {
-                 remove(b);
 diff --git a/services/java/com/android/server/am/BroadcastQueue.java b/services/java/com/android/server/am/BroadcastQueue.java
-index 22f5a5c..d17593d 100644
+index 4973f49..e23688d 100644
 --- a/services/java/com/android/server/am/BroadcastQueue.java
 +++ b/services/java/com/android/server/am/BroadcastQueue.java
-@@ -41,6 +41,8 @@ import android.util.EventLog;
- import android.util.Log;
+@@ -43,4 +43,6 @@ import android.util.Log;
  import android.util.Slog;
  
 +import android.privacy.surrogate.PrivacyActivityManagerService;
 +
  /**
   * BROADCASTS
-  *
-@@ -712,8 +714,31 @@ public final class BroadcastQueue {
-                         + mQueueName + "] for " + r + " at " + timeoutTime);
+@@ -715,6 +717,29 @@ public final class BroadcastQueue {
                  setBroadcastTimeoutLocked(timeoutTime);
              }
 -
@@ -8861,9 +8700,7 @@ index 22f5a5c..d17593d 100644
 +            // END privacy-added
              if (nextReceiver instanceof BroadcastFilter) {
                  // Simple case: this is a registered receiver who gets
-                 // a direct call.
-@@ -722,7 +747,15 @@ public final class BroadcastQueue {
-                         "Delivering ordered ["
+@@ -725,5 +750,13 @@ public final class BroadcastQueue {
                          + mQueueName + "] to registered "
                          + filter + ": " + r);
 -                deliverToRegisteredReceiverLocked(r, filter, r.ordered);
@@ -8878,10 +8715,8 @@ index 22f5a5c..d17593d 100644
 +                }
                  if (r.receiver == null || !r.ordered) {
                      // The receiver has already finished, so schedule to
-                     // process the next one.
-@@ -826,7 +859,12 @@ public final class BroadcastQueue {
-                         + " to " + r.curApp + ": process crashing");
-                 skip = true;
+@@ -849,5 +882,10 @@ public final class BroadcastQueue {
+                 }
              }
 -
 +            //PRIVACY BEGIN
@@ -8892,9 +8727,7 @@ index 22f5a5c..d17593d 100644
 +            //PRIVACY END
              if (skip) {
                  if (DEBUG_BROADCAST)  Slog.v(TAG,
-                         "Skipping delivery of ordered ["
-@@ -922,6 +960,33 @@ public final class BroadcastQueue {
-         }
+@@ -945,4 +983,31 @@ public final class BroadcastQueue {
      }
  
 +    // BEGIN privacy-added
@@ -8926,26 +8759,22 @@ index 22f5a5c..d17593d 100644
 +
      final void setBroadcastTimeoutLocked(long timeoutTime) {
          if (! mPendingBroadcastTimeoutMessage) {
-             Message msg = mHandler.obtainMessage(BROADCAST_TIMEOUT_MSG, this);
 diff --git a/telephony/java/android/telephony/CellInfoGsm.java b/telephony/java/android/telephony/CellInfoGsm.java
 index 1bedddb..0a91fda 100644
 --- a/telephony/java/android/telephony/CellInfoGsm.java
 +++ b/telephony/java/android/telephony/CellInfoGsm.java
-@@ -48,7 +48,7 @@ public final class CellInfoGsm extends CellInfo implements Parcelable {
-     public CellIdentityGsm getCellIdentity() {
+@@ -49,5 +49,5 @@ public final class CellInfoGsm extends CellInfo implements Parcelable {
          return mCellIdentityGsm;
      }
 -    /** @hide */
 +
      public void setCellIdentity(CellIdentityGsm cid) {
          mCellIdentityGsm = cid;
-     }
 diff --git a/telephony/java/android/telephony/PhoneStateListener.java b/telephony/java/android/telephony/PhoneStateListener.java
-index ff77fc0..cdd328e 100644
+index ad37f87..b790722 100644
 --- a/telephony/java/android/telephony/PhoneStateListener.java
 +++ b/telephony/java/android/telephony/PhoneStateListener.java
-@@ -16,12 +16,19 @@
- 
+@@ -19,10 +19,17 @@
  package android.telephony;
  
 +// BEGIN privacy-added
@@ -8966,9 +8795,7 @@ index ff77fc0..cdd328e 100644
 +//import android.telephony.CellLocation;
  import android.telephony.CellInfo;
  import android.telephony.Rlog;
- 
-@@ -158,6 +165,29 @@ public class PhoneStateListener {
-      */
+@@ -163,4 +170,27 @@ public class PhoneStateListener {
      public static final int LISTEN_OTASP_CHANGED                            = 0x00000200;
  
 +    // BEGIN privacy-added
@@ -8996,9 +8823,7 @@ index ff77fc0..cdd328e 100644
 +
      /**
       * Listen for changes to observed cell info.
-      *
-@@ -317,11 +347,51 @@ public class PhoneStateListener {
- 
+@@ -337,9 +367,49 @@ public class PhoneStateListener {
          public void onCellLocationChanged(Bundle bundle) {
              CellLocation location = CellLocation.newFromBundle(bundle);
 -            Message.obtain(mHandler, LISTEN_CELL_LOCATION, 0, 0, location).sendToTarget();
@@ -9050,13 +8875,11 @@ index ff77fc0..cdd328e 100644
 +            // END privacy-modified
          }
  
-         public void onDataConnectionStateChanged(int state, int networkType) {
 diff --git a/telephony/java/android/telephony/ServiceState.java b/telephony/java/android/telephony/ServiceState.java
-index adf058c..96eeb9e 100644
+index 528fc23..a870f9e 100644
 --- a/telephony/java/android/telephony/ServiceState.java
 +++ b/telephony/java/android/telephony/ServiceState.java
-@@ -564,7 +564,10 @@ public class ServiceState implements Parcelable {
-                 + " EmergOnly=" + mIsEmergencyOnly);
+@@ -580,5 +580,8 @@ public class ServiceState implements Parcelable {
      }
  
 -    private void setNullState(int state) {
@@ -9066,13 +8889,11 @@ index adf058c..96eeb9e 100644
 +   // END privacy-modified
          if (DBG) Rlog.d(LOG_TAG, "[ServiceState] setNullState=" + state);
          mVoiceRegState = state;
-         mDataRegState = state;
 diff --git a/wifi/java/android/net/wifi/WifiInfo.java b/wifi/java/android/net/wifi/WifiInfo.java
 index 5d130c6..7979d2c 100644
 --- a/wifi/java/android/net/wifi/WifiInfo.java
 +++ b/wifi/java/android/net/wifi/WifiInfo.java
-@@ -79,6 +79,24 @@ public class WifiInfo implements Parcelable {
-      */
+@@ -80,4 +80,22 @@ public class WifiInfo implements Parcelable {
      private boolean mMeteredHint;
  
 +
@@ -9095,4 +8916,3 @@ index 5d130c6..7979d2c 100644
 +
      WifiInfo() {
          mWifiSsid = null;
-         mBSSID = null;
