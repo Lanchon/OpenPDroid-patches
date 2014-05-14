@@ -1,5 +1,5 @@
 diff --git a/core/pathmap.mk b/core/pathmap.mk
-index fd0f5a4..d1bbd45 100644
+index 3f3dd8b..4e8443f 100644
 --- a/core/pathmap.mk
 +++ b/core/pathmap.mk
 @@ -91,6 +91,7 @@ FRAMEWORKS_BASE_SUBDIRS := \
@@ -11,10 +11,10 @@ index fd0f5a4..d1bbd45 100644
  	    telephony \
  	    wifi \
 diff --git a/target/product/core_minimal.mk b/target/product/core_minimal.mk
-index fc2fc80..3538702 100644
+index a149556..d328cea 100644
 --- a/target/product/core_minimal.mk
 +++ b/target/product/core_minimal.mk
-@@ -28,6 +28,7 @@ PRODUCT_PACKAGES += \
+@@ -29,6 +29,7 @@ PRODUCT_PACKAGES += \
      HTMLViewer \
      MediaProvider \
      PackageInstaller \
