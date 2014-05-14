@@ -39,7 +39,7 @@ index 100b288..c977eef 100644
      field public static final android.os.Parcelable.Creator CREATOR;
    }
 diff --git a/core/java/android/app/ContextImpl.java b/core/java/android/app/ContextImpl.java
-index 0e3119c..343d416 100644
+index 0e3119c..a42dee9 100644
 --- a/core/java/android/app/ContextImpl.java
 +++ b/core/java/android/app/ContextImpl.java
 @@ -70,7 +70,7 @@ import android.location.ILocationManager;
@@ -68,17 +68,7 @@ index 0e3119c..343d416 100644
  import java.io.File;
  import java.io.FileInputStream;
  import java.io.FileNotFoundException;
-@@ -201,6 +211,9 @@ class ContextImpl extends Context {
-     private Resources mResources;
-     /*package*/ ActivityThread mMainThread;
-     private Context mOuterContext;
-+    // BEGIN privacy-added
-+    private static Context sOuterContext = null;
-+    // END privacy-added
-     private IBinder mActivityToken = null;
-     private ApplicationContentResolver mContentResolver;
-     private int mThemeResource = 0;
-@@ -332,7 +345,12 @@ class ContextImpl extends Context {
+@@ -332,7 +342,12 @@ class ContextImpl extends Context {
                  public Object createService(ContextImpl ctx) {
                      IBinder b = ServiceManager.getService(ACCOUNT_SERVICE);
                      IAccountManager service = IAccountManager.Stub.asInterface(b);
@@ -92,7 +82,7 @@ index 0e3119c..343d416 100644
                  }});
  
          registerService(ACTIVITY_SERVICE, new ServiceFetcher() {
-@@ -371,8 +389,12 @@ class ContextImpl extends Context {
+@@ -371,8 +386,12 @@ class ContextImpl extends Context {
          registerService(CONNECTIVITY_SERVICE, new ServiceFetcher() {
                  public Object createService(ContextImpl ctx) {
                      IBinder b = ServiceManager.getService(CONNECTIVITY_SERVICE);
@@ -107,7 +97,7 @@ index 0e3119c..343d416 100644
                  }});
  
          registerService(COUNTRY_DETECTOR, new StaticServiceFetcher() {
-@@ -438,8 +460,13 @@ class ContextImpl extends Context {
+@@ -438,8 +457,13 @@ class ContextImpl extends Context {
  
          registerService(LOCATION_SERVICE, new ServiceFetcher() {
                  public Object createService(ContextImpl ctx) {
@@ -123,7 +113,7 @@ index 0e3119c..343d416 100644
                  }});
  
          registerService(NETWORK_POLICY_SERVICE, new ServiceFetcher() {
-@@ -512,7 +539,12 @@ class ContextImpl extends Context {
+@@ -512,7 +536,12 @@ class ContextImpl extends Context {
  
          registerService(TELEPHONY_SERVICE, new ServiceFetcher() {
                  public Object createService(ContextImpl ctx) {
@@ -131,13 +121,13 @@ index 0e3119c..343d416 100644
 +                    // BEGIN privacy-modified
 +                    //return new TelephonyManager(ctx.getOuterContext());
 +                    Log.d(TAG, "PDroid:ContextImpl: returning PrivacyTelephonyManager");
-+                    return new PrivacyTelephonyManager(ctx.getOuterContext(), getPrivacyService(),
++                    return new PrivacyTelephonyManager(ctx, getPrivacyService(),
 +                        ctx.getOuterContext());
 +                    // END privacy-modified
                  }});
  
          registerService(MSIM_TELEPHONY_SERVICE, new ServiceFetcher() {
-@@ -548,7 +580,12 @@ class ContextImpl extends Context {
+@@ -548,7 +577,12 @@ class ContextImpl extends Context {
                  public Object createService(ContextImpl ctx) {
                      IBinder b = ServiceManager.getService(WIFI_SERVICE);
                      IWifiManager service = IWifiManager.Stub.asInterface(b);
@@ -145,13 +135,13 @@ index 0e3119c..343d416 100644
 +                    // BEGIN privacy-modified
 +                    //return new WifiManager(ctx.getOuterContext(), service);
 +                    Log.d(TAG, "PDroid:ContextImpl: returning PrivacyWifiManager");
-+                    return new PrivacyWifiManager(ctx.getOuterContext(), getPrivacyService(),
++                    return new PrivacyWifiManager(ctx, getPrivacyService(),
 +                        ctx.getOuterContext(), service);
 +                    // END privacy-modified
                  }});
  
          registerService(WIFI_P2P_SERVICE, new ServiceFetcher() {
-@@ -558,6 +595,16 @@ class ContextImpl extends Context {
+@@ -558,6 +592,16 @@ class ContextImpl extends Context {
                      return new WifiP2pManager(service);
                  }});
  
@@ -161,14 +151,14 @@ index 0e3119c..343d416 100644
 +                    Log.d(TAG, "PDroid:ContextImpl: Creating static privacy service");
 +                    IBinder b = ServiceManager.getService("privacy");
 +                    IPrivacySettingsManager service = IPrivacySettingsManager.Stub.asInterface(b);
-+                    return new PrivacySettingsManager(getStaticOuterContext(), service);
++                    return new PrivacySettingsManager(service);
 +                }});
 +        // END privacy-added
 +
          registerService(WINDOW_SERVICE, new ServiceFetcher() {
                  Display mDefaultDisplay;
                  public Object getService(ContextImpl ctx) {
-@@ -633,6 +680,12 @@ class ContextImpl extends Context {
+@@ -633,6 +677,12 @@ class ContextImpl extends Context {
              }});
      }
  
@@ -181,57 +171,6 @@ index 0e3119c..343d416 100644
      static ContextImpl getImpl(Context context) {
          Context nextContext;
          while ((context instanceof ContextWrapper) &&
-@@ -2036,7 +2089,10 @@ class ContextImpl extends Context {
-     }
- 
-     ContextImpl() {
--        mOuterContext = this;
-+        if (sOuterContext != null) {
-+            Log.w(TAG, "PDroid:ContextImpl: ContextImpl being created but already has sOuterContext");
-+        }
-+        sOuterContext = mOuterContext = this;
-     }
- 
-     /**
-@@ -2055,7 +2111,14 @@ class ContextImpl extends Context {
-         mUser = context.mUser;
-         mDisplay = context.mDisplay;
-         mOuterContext = this;
--        mDisplayAdjustments.setCompatibilityInfo(mPackageInfo.getCompatibilityInfo());
-+        mDisplayAdjustments.setCompatibilityInfo(mPackageInfo.getCompatibilityInfo());        
-+        // BEGIN privacy
-+        if (sOuterContext != null) {
-+            Log.w(TAG, "PDroid:ContextImpl: ContextImpl being created but already has sOuterContext");
-+        }
-+        
-+        sOuterContext = mOuterContext = this;
-+        // END privacy
-     }
- 
-     final void init(LoadedApk packageInfo, IBinder activityToken, ActivityThread mainThread) {
-@@ -2138,13 +2201,21 @@ class ContextImpl extends Context {
-     }
- 
-     final void setOuterContext(Context context) {
--        mOuterContext = context;
-+        if (sOuterContext != null) {
-+            Log.w(TAG, "PDroid:ContextImpl: ContextImpl being created but already has sOuterContext");
-+        }
-+
-+        sOuterContext = mOuterContext = context;
-     }
- 
-     final Context getOuterContext() {
-         return mOuterContext;
-     }
- 
-+    final static Context getStaticOuterContext() {
-+        return sOuterContext;
-+    }
-+
-     final IBinder getActivityToken() {
-         return mActivityToken;
-     }
 diff --git a/core/java/android/app/Instrumentation.java b/core/java/android/app/Instrumentation.java
 index a307a73..98548fb 100644
 --- a/core/java/android/app/Instrumentation.java
@@ -4791,10 +4730,10 @@ index 0000000..554703c
 +}
 diff --git a/privacy/java/android/privacy/PrivacySettingsManager.java b/privacy/java/android/privacy/PrivacySettingsManager.java
 new file mode 100644
-index 0000000..ad07438
+index 0000000..b32fd00
 --- /dev/null
 +++ b/privacy/java/android/privacy/PrivacySettingsManager.java
-@@ -0,0 +1,219 @@
+@@ -0,0 +1,222 @@
 +/**
 + * Copyright (C) 2012 Svyatoslav Hresyk
 + * This program is free software; you can redistribute it and/or modify it under
@@ -4832,9 +4771,12 @@ index 0000000..ad07438
 +     * @hide - this should be instantiated through Context.getSystemService
 +     * @param context
 +     */
++    public PrivacySettingsManager(IPrivacySettingsManager service) {
++        this.service = service;
++    }
++
++    @Deprecated
 +    public PrivacySettingsManager(Context context, IPrivacySettingsManager service) {
-+//        Log.d(TAG, "PrivacySettingsManager - initializing for package: " + context.getPackageName() + 
-+//                " UID:" + Binder.getCallingUid());
 +        this.service = service;
 +    }
 +
@@ -5295,7 +5237,7 @@ index 0000000..c7c4434
 +}
 diff --git a/privacy/java/android/privacy/surrogate/PrivacyAccountManager.java b/privacy/java/android/privacy/surrogate/PrivacyAccountManager.java
 new file mode 100644
-index 0000000..c2ff766
+index 0000000..ba10d6f
 --- /dev/null
 +++ b/privacy/java/android/privacy/surrogate/PrivacyAccountManager.java
 @@ -0,0 +1,295 @@
@@ -5351,14 +5293,14 @@ index 0000000..c2ff766
 +    public PrivacyAccountManager(Context privacyContext, IPrivacySettingsManager privacyService, Context serviceContext, IAccountManager service) {
 +        super(serviceContext, service);
 +        context = privacyContext;
-+        pSetMan = new PrivacySettingsManager(context, privacyService);
++        pSetMan = new PrivacySettingsManager(privacyService);
 +    }
 +
 +    /** {@hide} */
 +    public PrivacyAccountManager(Context privacyContext, IPrivacySettingsManager privacyService, Context serviceContext, IAccountManager service, Handler handler) {
 +        super(serviceContext, service, handler);
 +        context = privacyContext;
-+        pSetMan = new PrivacySettingsManager(context, privacyService);
++        pSetMan = new PrivacySettingsManager(privacyService);
 +    }
 +
 +    /**
@@ -5898,7 +5840,7 @@ index 0000000..0ab3bd4
 +}
 diff --git a/privacy/java/android/privacy/surrogate/PrivacyConnectivityManager.java b/privacy/java/android/privacy/surrogate/PrivacyConnectivityManager.java
 new file mode 100644
-index 0000000..7ceb377
+index 0000000..ab33989
 --- /dev/null
 +++ b/privacy/java/android/privacy/surrogate/PrivacyConnectivityManager.java
 @@ -0,0 +1,218 @@
@@ -5946,7 +5888,7 @@ index 0000000..7ceb377
 +	public PrivacyConnectivityManager(Context privacyContext, IPrivacySettingsManager privacyService, IConnectivityManager service, String packageName) {
 +		super(service, packageName);
 +		context = privacyContext;
-+		pSetMan = new PrivacySettingsManager(context, privacyService);
++		pSetMan = new PrivacySettingsManager(privacyService);
 +	}
 +	
 +	@Override
@@ -6888,7 +6830,7 @@ index 0000000..7e77d04
 +}
 diff --git a/privacy/java/android/privacy/surrogate/PrivacyLocationManager.java b/privacy/java/android/privacy/surrogate/PrivacyLocationManager.java
 new file mode 100644
-index 0000000..4797c7f
+index 0000000..8917c72
 --- /dev/null
 +++ b/privacy/java/android/privacy/surrogate/PrivacyLocationManager.java
 @@ -0,0 +1,531 @@
@@ -6944,7 +6886,7 @@ index 0000000..4797c7f
 +    public PrivacyLocationManager(Context privacyContext, IPrivacySettingsManager privacyService, Context serviceContext, ILocationManager service) {
 +        super(serviceContext, service);
 +        context = privacyContext;
-+        pSetMan = new PrivacySettingsManager(context, privacyService);
++        pSetMan = new PrivacySettingsManager(privacyService);
 +    }
 +
 +    @Override
@@ -7425,7 +7367,7 @@ index 0000000..4797c7f
 +}
 diff --git a/privacy/java/android/privacy/surrogate/PrivacyTelephonyManager.java b/privacy/java/android/privacy/surrogate/PrivacyTelephonyManager.java
 new file mode 100644
-index 0000000..80b84ff
+index 0000000..056739d
 --- /dev/null
 +++ b/privacy/java/android/privacy/surrogate/PrivacyTelephonyManager.java
 @@ -0,0 +1,520 @@
@@ -7490,7 +7432,7 @@ index 0000000..80b84ff
 +        // don't call getSystemService to avoid getting java.lang.IllegalStateException: 
 +        // System services not available to Activities before onCreate()
 +        //pSetMan = (PrivacySettingsManager) context.getSystemService("privacy");
-+        pSetMan = new PrivacySettingsManager(context, privacyService);
++        pSetMan = new PrivacySettingsManager(privacyService);
 +    }
 +    
 +    /**
@@ -7951,7 +7893,7 @@ index 0000000..80b84ff
 +}
 diff --git a/privacy/java/android/privacy/surrogate/PrivacyWifiManager.java b/privacy/java/android/privacy/surrogate/PrivacyWifiManager.java
 new file mode 100644
-index 0000000..7289977
+index 0000000..361b7da
 --- /dev/null
 +++ b/privacy/java/android/privacy/surrogate/PrivacyWifiManager.java
 @@ -0,0 +1,219 @@
@@ -8003,7 +7945,7 @@ index 0000000..7289977
 +	public PrivacyWifiManager(Context privacyContext, IPrivacySettingsManager privacyService, Context serviceContext, IWifiManager service){
 +		super(serviceContext, service);
 +		context = privacyContext;
-+		pSetMan = new PrivacySettingsManager(context, privacyService);
++		pSetMan = new PrivacySettingsManager(privacyService);
 +	}
 +	
 +	@Override
