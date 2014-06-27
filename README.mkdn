@@ -9,6 +9,12 @@ Get scripts to apply the patches from [here](https://github.com/Lanchon/OpenPDro
 ### Update
 
 
+FYI, as of 2014-06-26 the patches continue to apply without issues.
+
+
+### Update
+
+
 I adapted the patches to CM11-M6 and made general improvements and fixes, but the code is way too messy for my taste. It looks like it needs major rewriting, mateor was very right on this. I will continue to rebase the code for CM11 but will not clean it up any further.
 
 There is an alternative, the GPL-licensed XPrivacy, that I was avoiding because I thought that only the patches were GPL when in fact the manager app is also free software. I will eventually review it and, if I find better maintained code, I will concentrate my efforts in that project. It is more widely used than OpenPDroid and seems to have a brighter future.
