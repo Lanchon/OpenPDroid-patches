@@ -1,4 +1,4 @@
-## OpenPDroid for Cyanogenmod 11 M6 
+## OpenPDroid for Cyanogenmod 11 / Android 4.4.4
 
 
 See discussion [here](https://github.com/OpenPDroid/OpenPDroidPatches/issues/21).
