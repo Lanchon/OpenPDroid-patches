@@ -9,7 +9,7 @@ Get scripts to apply the patches from [here](https://github.com/Lanchon/OpenPDro
 ### Update
 
 
-FYI, as of 2014-06-26 the patches continue to apply without issues.
+FYI, as of 2014-07-16 the patches continue to apply without issues.
 
 
 ### Update
