@@ -9,7 +9,7 @@ Get scripts to apply the patches from [here](https://github.com/Lanchon/OpenPDro
 ### Update
 
 
-FYI, as of 2014-07-16 the patches continue to apply without issues.
+FYI, the patches continue to apply to the M8 snapshot without issues.
 
 
 ### Update
