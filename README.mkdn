@@ -1,7 +1,7 @@
 ## OpenPDroid for Cyanogenmod 11 / Android 4.4.4
 
 
-See discussion [here](https://github.com/OpenPDroid/OpenPDroidPatches/issues/21).
+Visit the [project thread](http://forum.xda-developers.com/android/software-hacking/mod-openpdroid-patches-cyanogenmod-11-t2839491).
 
 Get scripts to apply the patches from [here](https://github.com/Lanchon/OpenPDroid-scripts).
 
@@ -9,7 +9,7 @@ Get scripts to apply the patches from [here](https://github.com/Lanchon/OpenPDro
 ### Update
 
 
-FYI, the patches continue to apply to the M8 snapshot without issues.
+The current patches apply correctly on CM11 M10.
 
 
 ### Update
