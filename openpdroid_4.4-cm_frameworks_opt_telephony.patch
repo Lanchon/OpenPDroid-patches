@@ -1944,7 +1944,7 @@ index 0000000..dbace04
 +
 +}
 diff --git a/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java b/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java
-index 2dfc580..59ce6a3 100644
+index 15af3ce..380cc63 100644
 --- a/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java
 +++ b/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java
 @@ -19,6 +19,15 @@
@@ -2229,7 +2229,7 @@ index f4d6db7..d787cf0 100644
          }
      }
 diff --git a/src/java/com/android/internal/telephony/SMSDispatcher.java b/src/java/com/android/internal/telephony/SMSDispatcher.java
-index dca41c4..b8b6e83 100644
+index 9dee863..172b894 100644
 --- a/src/java/com/android/internal/telephony/SMSDispatcher.java
 +++ b/src/java/com/android/internal/telephony/SMSDispatcher.java
 @@ -67,6 +67,13 @@ import java.util.HashMap;
@@ -2414,10 +2414,10 @@ index dca41c4..b8b6e83 100644
 diff --git a/src/java/com/android/internal/telephony/cdma/CDMAPhone.java b/src/java/com/android/internal/telephony/cdma/CDMAPhone.java
 old mode 100644
 new mode 100755
-index c1b5767..c2b98e8
+index 0db69df..474786f
 --- a/src/java/com/android/internal/telephony/cdma/CDMAPhone.java
 +++ b/src/java/com/android/internal/telephony/cdma/CDMAPhone.java
-@@ -945,7 +945,7 @@ public class CDMAPhone extends PhoneBase {
+@@ -939,7 +939,7 @@ public class CDMAPhone extends PhoneBase {
           super.notifyServiceStateChangedP(ss);
       }
  
@@ -2427,7 +2427,7 @@ index c1b5767..c2b98e8
       }
  
 diff --git a/src/java/com/android/internal/telephony/cdma/CdmaServiceStateTracker.java b/src/java/com/android/internal/telephony/cdma/CdmaServiceStateTracker.java
-index 3e4022f..94d87bc 100644
+index 9bfa3d7..436f503 100644
 --- a/src/java/com/android/internal/telephony/cdma/CdmaServiceStateTracker.java
 +++ b/src/java/com/android/internal/telephony/cdma/CdmaServiceStateTracker.java
 @@ -65,6 +65,15 @@ import java.util.Date;
@@ -2506,7 +2506,7 @@ index 3e4022f..94d87bc 100644
          switch (what) {
              case EVENT_POLL_STATE_GPRS:
                  states = (String[])ar.result;
-@@ -694,8 +725,19 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
+@@ -690,8 +721,19 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
  
  
                  // Values are -1 if not available.
@@ -2528,7 +2528,7 @@ index 3e4022f..94d87bc 100644
  
                  if (reasonForDenial == 0) {
                      mRegistrationDeniedReason = ServiceStateTracker.REGISTRATION_DENIED_GEN;
-@@ -726,14 +768,25 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
+@@ -722,14 +764,25 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
                                      "'= " + opNames[2]);
                          }
                      }
@@ -2557,7 +2557,7 @@ index 3e4022f..94d87bc 100644
                  } else {
                      if (DBG) log("EVENT_POLL_STATE_OPERATOR_CDMA: error parsing opNames");
                  }
-@@ -1071,13 +1124,27 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
+@@ -1069,13 +1122,27 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
              if ((mCi.getRadioState().isOn()) && (!mIsSubscriptionFromRuim)) {
                  String eriText;
                  // Now the CDMAPhone sees the new ServiceState so it can get the new ERI text
@@ -2593,10 +2593,10 @@ index 3e4022f..94d87bc 100644
                  mSS.setOperatorAlphaLong(eriText);
              }
 diff --git a/src/java/com/android/internal/telephony/gsm/GSMPhone.java b/src/java/com/android/internal/telephony/gsm/GSMPhone.java
-index 9614de3..63e02e0 100644
+index b19bcca..767b948 100644
 --- a/src/java/com/android/internal/telephony/gsm/GSMPhone.java
 +++ b/src/java/com/android/internal/telephony/gsm/GSMPhone.java
-@@ -426,7 +426,7 @@ public class GSMPhone extends PhoneBase {
+@@ -427,7 +427,7 @@ public class GSMPhone extends PhoneBase {
       * Notify any interested party of a Phone state change
       * {@link com.android.internal.telephony.PhoneConstants.State}
       */
@@ -2605,7 +2605,7 @@ index 9614de3..63e02e0 100644
          mNotifier.notifyPhoneState(this);
      }
  
-@@ -465,7 +465,7 @@ public class GSMPhone extends PhoneBase {
+@@ -466,7 +466,7 @@ public class GSMPhone extends PhoneBase {
      }
  
      /*package*/
@@ -2615,7 +2615,7 @@ index 9614de3..63e02e0 100644
      }
  
 diff --git a/src/java/com/android/internal/telephony/gsm/GsmServiceStateTracker.java b/src/java/com/android/internal/telephony/gsm/GsmServiceStateTracker.java
-index d618551..0b924e6 100644
+index cdc3178..30129ba 100644
 --- a/src/java/com/android/internal/telephony/gsm/GsmServiceStateTracker.java
 +++ b/src/java/com/android/internal/telephony/gsm/GsmServiceStateTracker.java
 @@ -81,6 +81,14 @@ import java.util.Date;
@@ -2735,7 +2735,7 @@ index d618551..0b924e6 100644
                      }
                      break;
                  }
-@@ -1175,7 +1231,7 @@ public class GsmServiceStateTracker extends ServiceStateTracker {
+@@ -1183,7 +1239,7 @@ public class GsmServiceStateTracker extends ServiceStateTracker {
          }
  
          if (hasLocationChanged) {
