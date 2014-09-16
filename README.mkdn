@@ -1,4 +1,4 @@
-## OpenPDroid for Cyanogenmod 11 M6 
+## OpenPDroid for Cyanogenmod 11 / Android 4.4.4
 
 
 See discussion [here](https://github.com/OpenPDroid/OpenPDroidPatches/issues/21).
@@ -9,51 +9,12 @@ Get scripts to apply the patches from [here](https://github.com/Lanchon/OpenPDro
 ### Update
 
 
+FYI, the patches continue to apply to the M8 snapshot without issues.
+
+
+### Update
+
+
 I adapted the patches to CM11-M6 and made general improvements and fixes, but the code is way too messy for my taste. It looks like it needs major rewriting, mateor was very right on this. I will continue to rebase the code for CM11 but will not clean it up any further.
 
 There is an alternative, the GPL-licensed XPrivacy, that I was avoiding because I thought that only the patches were GPL when in fact the manager app is also free software. I will eventually review it and, if I find better maintained code, I will concentrate my efforts in that project. It is more widely used than OpenPDroid and seems to have a brighter future.
-
-
-## OpenPdroid v1.0.1 for Android 4.4
-
-
-These are the current build patches for Android 4.4 and should generally reflect the current state of the **android-4.4_r1-openpdroid** branch. I made the switch back to creating patches off of tags with Android 4.3, now the naming reflects that. If a tag comes out that significantly breaks the patches, then a new branch will be created.
-
-The latest commits are not always reflected in the build patches, bleeding-edge development is in the _-devel_ branches. Bleeding edge development is coming slowly these days, no one realizes this more than me. If you think community driven security is a good thing, you are encouraged to contribute.
-
-There are ```apply``` and ```remove``` patch scripts available that I personally use over at [my personal github page](https://github.com/mateor/patchScripts). A couple of those scripts also create [auto-patcher](https://www.github.com/mateor/auto-patcher) patches, but the apply/remove scripts could be helpful to anyone reading this.
-
-__These build patches should work for most roms. I try and maintain them to apply cleanly to almost all AOSP-derived firmware (CyanogenMod, AOKP, ParanoidAndroid, SlimRom, etc.)
-
-
-To Apply
---------------
-	cd ~/android/system/build; git checkout -b openpdroid; patch -p1 < ~/openpdroid_4.3_build.patch
-	cd ~/android/system/libcore; git checkout -b openpdroid; patch -p1 < ~/openpdroid_4.3_libcore.patch
-	cd ~/android/system/packages/apps/Mms; git checkout -b openpdroid; patch -p1 < ~/openpdroid_4.3_packages_apps_Mms.patch
-	cd ~/android/system/frameworks/base; git checkout -b openpdroid; patch -p1 < ~/openpdroid_4.3_frameworks_base.patch
-	cd ~/android/system/frameworks/opt/telephony; git checkout -b openpdroid; patch -p1 < ~/openpdroid_4.3_frameworks_opt_telephony.patch
-	cd ~/android/system; . build/envsetup.sh; brunch <DEVICE_TARGET>
-
-
-To Remove
---------------
-	cd ~/android/system; rm -rf out/target/common/obj/JAVA_LIBRARIES/framework_intermediates out/host/common/obj/JAVA_LIBRARIES/layoutlib_intermediates out/target/common/obj/JAVA_LIBRARIES/telephony-common_intermediates out/target/common/obj/APPS/Mms_intermediates out/target/common/obj/JAVA_LIBRARIES/services_intermediates
-
-**[OR]** 	cd ~/android; make clobber
-
-**and** to reset your source tree**
-
-	cd ~/android/system/build; git checkout . ; git clean -df
-	cd ~/android/system/libcore; git checkout . ; git clean -df
-	cd ~/android/system/frameworks/base; git checkout . ; git clean -df
-	cd ~/android/system/frameworks/opt/telephony; git checkout . ; git clean -df
-	cd ~/android/system/packages/apps/Mms; git checkout . ; git clean -df
-	cd ~/android/system; repo abandon openpdroid
-
-If OpenPDroid intrigues you, yet the thought of applying all these patches gives you
-pause, there is a tool that can attempt to patch the framework of an already compiled
-rom called [The Auto-Patcher](http://forum.xda-developers.com/showthread.php?p=32155918#post32155918). 
-
-
-OpenPDroid is an open source fork of the PDroid framework, as written by Svyat and expanded by CollegeDev. We are always looking for contributors, [come see us on XDA](http://forum.xda-developers.com/showthread.php?t=2098156) or submit a pull request.
