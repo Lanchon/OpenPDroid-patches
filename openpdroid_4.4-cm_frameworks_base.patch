@@ -1160,7 +1160,7 @@ index 156600e..d1bb041 100644
      }
  
 diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
-index cf0ace8..ea97c07 100644
+index bd15fcb..ca6886a 100644
 --- a/core/java/android/provider/Settings.java
 +++ b/core/java/android/provider/Settings.java
 @@ -61,6 +61,17 @@ import java.util.HashMap;

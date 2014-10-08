@@ -1944,7 +1944,7 @@ index 0000000..dbace04
 +
 +}
 diff --git a/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java b/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java
-index 15af3ce..380cc63 100644
+index 1e0e622..eb0658f 100644
 --- a/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java
 +++ b/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java
 @@ -19,6 +19,15 @@
@@ -1963,7 +1963,7 @@ index 15af3ce..380cc63 100644
  import android.Manifest;
  import android.app.AppOpsManager;
  import android.app.PendingIntent;
-@@ -80,6 +89,119 @@ public class IccSmsInterfaceManager extends ISms.Stub {
+@@ -81,6 +90,119 @@ public class IccSmsInterfaceManager extends ISms.Stub {
      final protected AppOpsManager mAppOps;
      protected SMSDispatcher mDispatcher;
  
@@ -2083,7 +2083,7 @@ index 15af3ce..380cc63 100644
      protected Handler mHandler = new Handler() {
          @Override
          public void handleMessage(Message msg) {
-@@ -200,6 +322,11 @@ public class IccSmsInterfaceManager extends ISms.Stub {
+@@ -201,6 +323,11 @@ public class IccSmsInterfaceManager extends ISms.Stub {
          if (DBG) log("updateMessageOnIccEf: index=" + index +
                  " status=" + status + " ==> " +
                  "("+ Arrays.toString(pdu) + ")");
@@ -2095,7 +2095,7 @@ index 15af3ce..380cc63 100644
          enforceReceiveAndSend("Updating message on Icc");
          if (mAppOps.noteOp(AppOpsManager.OP_WRITE_ICC_SMS, Binder.getCallingUid(),
                  callingPackage) != AppOpsManager.MODE_ALLOWED) {
-@@ -255,6 +382,11 @@ public class IccSmsInterfaceManager extends ISms.Stub {
+@@ -256,6 +383,11 @@ public class IccSmsInterfaceManager extends ISms.Stub {
          if (DBG) log("copyMessageToIccEf: status=" + status + " ==> " +
                  "pdu=("+ Arrays.toString(pdu) +
                  "), smsc=(" + Arrays.toString(smsc) +")");
@@ -2107,7 +2107,7 @@ index 15af3ce..380cc63 100644
          enforceReceiveAndSend("Copying message to Icc");
          if (mAppOps.noteOp(AppOpsManager.OP_WRITE_ICC_SMS, Binder.getCallingUid(),
                  callingPackage) != AppOpsManager.MODE_ALLOWED) {
-@@ -288,6 +420,12 @@ public class IccSmsInterfaceManager extends ISms.Stub {
+@@ -289,6 +421,12 @@ public class IccSmsInterfaceManager extends ISms.Stub {
      /**
       * Retrieves all messages currently stored on Icc.
       *
@@ -2414,7 +2414,7 @@ index 9dee863..172b894 100644
 diff --git a/src/java/com/android/internal/telephony/cdma/CDMAPhone.java b/src/java/com/android/internal/telephony/cdma/CDMAPhone.java
 old mode 100644
 new mode 100755
-index 0db69df..474786f
+index 8524c0e..b9862c9
 --- a/src/java/com/android/internal/telephony/cdma/CDMAPhone.java
 +++ b/src/java/com/android/internal/telephony/cdma/CDMAPhone.java
 @@ -939,7 +939,7 @@ public class CDMAPhone extends PhoneBase {
@@ -2593,7 +2593,7 @@ index 9bfa3d7..436f503 100644
                  mSS.setOperatorAlphaLong(eriText);
              }
 diff --git a/src/java/com/android/internal/telephony/gsm/GSMPhone.java b/src/java/com/android/internal/telephony/gsm/GSMPhone.java
-index b19bcca..767b948 100644
+index 9754f19..f9eefd8 100644
 --- a/src/java/com/android/internal/telephony/gsm/GSMPhone.java
 +++ b/src/java/com/android/internal/telephony/gsm/GSMPhone.java
 @@ -427,7 +427,7 @@ public class GSMPhone extends PhoneBase {
