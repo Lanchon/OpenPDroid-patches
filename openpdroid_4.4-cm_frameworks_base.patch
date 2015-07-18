@@ -1,5 +1,5 @@
 diff --git a/Android.mk b/Android.mk
-index 8026eed..593d1a6 100644
+index 8fa2fd5..8b62f1b 100644
 --- a/Android.mk
 +++ b/Android.mk
 @@ -52,6 +52,7 @@ LOCAL_SRC_FILES += \
@@ -10,7 +10,7 @@ index 8026eed..593d1a6 100644
  LOCAL_SRC_FILES += \
  	core/java/android/accessibilityservice/IAccessibilityServiceConnection.aidl \
  	core/java/android/accessibilityservice/IAccessibilityServiceClient.aidl \
-@@ -282,6 +283,7 @@ LOCAL_SRC_FILES += \
+@@ -284,6 +285,7 @@ LOCAL_SRC_FILES += \
  	media/java/android/media/IRemoteDisplayProvider.aidl \
  	media/java/android/media/IRemoteVolumeObserver.aidl \
  	media/java/android/media/IRingtonePlayer.aidl \
@@ -18,7 +18,7 @@ index 8026eed..593d1a6 100644
  	telephony/java/com/android/internal/telephony/IPhoneStateListener.aidl \
  	telephony/java/com/android/internal/telephony/IPhoneSubInfo.aidl \
  	telephony/java/com/android/internal/telephony/msim/IPhoneSubInfoMSim.aidl \
-@@ -425,6 +427,7 @@ aidl_files := \
+@@ -427,6 +429,7 @@ aidl_files := \
  	frameworks/base/location/java/android/location/FusedBatchOptions.aidl \
  	frameworks/base/location/java/com/android/internal/location/ProviderProperties.aidl \
  	frameworks/base/location/java/com/android/internal/location/ProviderRequest.aidl \
@@ -27,10 +27,10 @@ index 8026eed..593d1a6 100644
  	frameworks/base/telephony/java/com/android/internal/telephony/IPhoneSubInfo.aidl \
  	frameworks/base/telephony/java/com/android/internal/telephony/msim/IPhoneSubInfoMSim.aidl \
 diff --git a/api/current.txt b/api/current.txt
-index 100b288..c977eef 100644
+index 6a1b400..59c7830 100644
 --- a/api/current.txt
 +++ b/api/current.txt
-@@ -23097,6 +23097,7 @@ package android.telephony {
+@@ -23099,6 +23099,7 @@ package android.telephony {
    public final class CellInfoGsm extends android.telephony.CellInfo implements android.os.Parcelable {
      method public android.telephony.CellIdentityGsm getCellIdentity();
      method public android.telephony.CellSignalStrengthGsm getCellSignalStrength();
@@ -1160,11 +1160,13 @@ index 156600e..d1bb041 100644
      }
  
 diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
-index bd15fcb..ca6886a 100644
+old mode 100755
+new mode 100644
+index 97d7460..3ada69d
 --- a/core/java/android/provider/Settings.java
 +++ b/core/java/android/provider/Settings.java
-@@ -61,6 +61,17 @@ import java.util.HashMap;
- import java.util.HashSet;
+@@ -64,6 +64,17 @@ import java.util.HashSet;
+ import java.util.List;
  import java.util.Locale;
  
 +//////////////////////////////////////////////////
@@ -1181,7 +1183,7 @@ index bd15fcb..ca6886a 100644
  /**
   * The Settings provider contains global system-level device preferences.
   */
-@@ -4202,6 +4213,46 @@ public final class Settings {
+@@ -4249,6 +4260,46 @@ public final class Settings {
                  }
              }
  
@@ -1228,7 +1230,7 @@ index bd15fcb..ca6886a 100644
              return sNameValueCache.getStringForUser(resolver, name, userHandle);
          }
  
-@@ -4517,7 +4568,71 @@ public final class Settings {
+@@ -4588,7 +4639,71 @@ public final class Settings {
                  int userHandle) {
              return putStringForUser(cr, name, Float.toString(value), userHandle);
          }
@@ -8551,7 +8553,7 @@ index 0000000..d0c5805
 +    }
 +}
 diff --git a/services/java/com/android/server/SystemServer.java b/services/java/com/android/server/SystemServer.java
-index 13db2c0..66b640c 100644
+index 2cdf9fb..5a0806a 100644
 --- a/services/java/com/android/server/SystemServer.java
 +++ b/services/java/com/android/server/SystemServer.java
 @@ -19,6 +19,11 @@
@@ -8589,7 +8591,7 @@ index 13db2c0..66b640c 100644
  
              Slog.i(TAG, "System Content Providers");
              ActivityManagerService.installSystemProviders();
-@@ -1308,6 +1320,19 @@ class ServerThread {
+@@ -1318,6 +1330,19 @@ class ServerThread {
          }
          return true;
      }

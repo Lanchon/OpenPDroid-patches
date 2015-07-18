@@ -2229,10 +2229,10 @@ index f4d6db7..d787cf0 100644
          }
      }
 diff --git a/src/java/com/android/internal/telephony/SMSDispatcher.java b/src/java/com/android/internal/telephony/SMSDispatcher.java
-index 9dee863..172b894 100644
+index 70aa7e9..29b4c21 100644
 --- a/src/java/com/android/internal/telephony/SMSDispatcher.java
 +++ b/src/java/com/android/internal/telephony/SMSDispatcher.java
-@@ -67,6 +67,13 @@ import java.util.HashMap;
+@@ -70,6 +70,13 @@ import java.util.List;
  import java.util.Random;
  import java.util.concurrent.atomic.AtomicInteger;
  
@@ -2246,7 +2246,7 @@ index 9dee863..172b894 100644
  import static android.telephony.SmsManager.RESULT_ERROR_FDN_CHECK_FAILURE;
  import static android.telephony.SmsManager.RESULT_ERROR_GENERIC_FAILURE;
  import static android.telephony.SmsManager.RESULT_ERROR_LIMIT_EXCEEDED;
-@@ -172,6 +179,123 @@ public abstract class SMSDispatcher extends Handler {
+@@ -175,6 +182,123 @@ public abstract class SMSDispatcher extends Handler {
          sConcatenatedRef += 1;
          return sConcatenatedRef;
      }
@@ -2370,7 +2370,7 @@ index 9dee863..172b894 100644
  
      /**
       * Create a new SMS dispatcher.
-@@ -190,7 +314,11 @@ public abstract class SMSDispatcher extends Handler {
+@@ -193,7 +317,11 @@ public abstract class SMSDispatcher extends Handler {
          mSettingsObserver = new SettingsObserver(this, mPremiumSmsRule, mContext);
          mContext.getContentResolver().registerContentObserver(Settings.Global.getUriFor(
                  Settings.Global.SMS_SHORT_CODE_RULE), false, mSettingsObserver);
@@ -2383,7 +2383,7 @@ index 9dee863..172b894 100644
          mSmsCapable = mContext.getResources().getBoolean(
                  com.android.internal.R.bool.config_sms_capable);
          mSmsSendDisabled = !SystemProperties.getBoolean(
-@@ -201,7 +329,7 @@ public abstract class SMSDispatcher extends Handler {
+@@ -204,7 +332,7 @@ public abstract class SMSDispatcher extends Handler {
          Rlog.d(TAG, "SMSDispatcher: ctor mSmsCapable=" + mSmsCapable + " format=" + getFormat()
                  + " mSmsSendDisabled=" + mSmsSendDisabled);
      }
@@ -2392,7 +2392,7 @@ index 9dee863..172b894 100644
      /**
       * Observe the secure setting for updated premium sms determination rules
       */
-@@ -728,6 +856,18 @@ public abstract class SMSDispatcher extends Handler {
+@@ -743,6 +871,18 @@ public abstract class SMSDispatcher extends Handler {
              return;
          }
  
@@ -2414,7 +2414,7 @@ index 9dee863..172b894 100644
 diff --git a/src/java/com/android/internal/telephony/cdma/CDMAPhone.java b/src/java/com/android/internal/telephony/cdma/CDMAPhone.java
 old mode 100644
 new mode 100755
-index 8524c0e..b9862c9
+index 2a614a0..1ac1b5b
 --- a/src/java/com/android/internal/telephony/cdma/CDMAPhone.java
 +++ b/src/java/com/android/internal/telephony/cdma/CDMAPhone.java
 @@ -939,7 +939,7 @@ public class CDMAPhone extends PhoneBase {

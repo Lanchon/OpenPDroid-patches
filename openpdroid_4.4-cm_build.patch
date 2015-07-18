@@ -1,8 +1,8 @@
 diff --git a/core/pathmap.mk b/core/pathmap.mk
-index 3f3dd8b..4e8443f 100644
+index 8f0f252..910eeb4 100644
 --- a/core/pathmap.mk
 +++ b/core/pathmap.mk
-@@ -91,6 +91,7 @@ FRAMEWORKS_BASE_SUBDIRS := \
+@@ -115,6 +115,7 @@ FRAMEWORKS_BASE_SUBDIRS := \
  	    media/mca/filterpacks \
  	    drm \
  	    opengl \
@@ -11,7 +11,7 @@ index 3f3dd8b..4e8443f 100644
  	    telephony \
  	    wifi \
 diff --git a/target/product/core_minimal.mk b/target/product/core_minimal.mk
-index a149556..d328cea 100644
+index 6e822ee..5be700d 100644
 --- a/target/product/core_minimal.mk
 +++ b/target/product/core_minimal.mk
 @@ -29,6 +29,7 @@ PRODUCT_PACKAGES += \
