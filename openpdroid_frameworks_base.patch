@@ -41,7 +41,7 @@ index fe0c209..60b714c 100644
      field public static final android.os.Parcelable.Creator CREATOR;
    }
 diff --git a/core/java/android/app/ContextImpl.java b/core/java/android/app/ContextImpl.java
-index 6dc94a6..dc4f350 100644
+index 6dc94a6..8195420 100644
 --- a/core/java/android/app/ContextImpl.java
 +++ b/core/java/android/app/ContextImpl.java
 @@ -154,6 +154,16 @@ import com.android.internal.annotations.GuardedBy;
@@ -84,7 +84,7 @@ index 6dc94a6..dc4f350 100644
 +                    //return new ConnectivityManager(IConnectivityManager.Stub.asInterface(b));
 +                    Log.d(TAG, "PDroid:ContextImpl: returning PrivacyConnectivityManager");
 +                    return new PrivacyConnectivityManager(ctx, getPrivacyService(),
-+                        IConnectivityManager.Stub.asInterface(b), ctx.getPackageName());
++                        IConnectivityManager.Stub.asInterface(b));
 +                    // END privacy-modified
                  }});
  
@@ -964,33 +964,32 @@ index 393637e..912cf3a 100644
       * Reports the type of network to which the
       * info in this {@code NetworkInfo} pertains.
 diff --git a/core/java/android/os/SystemProperties.java b/core/java/android/os/SystemProperties.java
-index 1479035..aeaa47e 100644
+index 1479035..a703ebc 100644
 --- a/core/java/android/os/SystemProperties.java
 +++ b/core/java/android/os/SystemProperties.java
-@@ -18,6 +18,22 @@ package android.os;
+@@ -18,6 +18,21 @@ package android.os;
  
  import java.util.ArrayList;
  
 +//-----------------------------------------------------------
-+import com.android.internal.telephony.TelephonyProperties;
-+
-+import android.os.Process;
-+import android.os.ServiceManager;
-+
-+import android.privacy.IPrivacySettingsManager;
-+import android.privacy.PrivacySettings;
-+import android.privacy.PrivacySettingsManager;
-+
 +import android.content.Context;
 +import android.content.pm.IPackageManager;
 +import android.content.pm.PackageManager;
 +import android.os.Binder;
++import android.os.Process;
++import android.os.ServiceManager;
++import android.util.Log;
++import com.android.internal.telephony.TelephonyProperties;
++
++import android.privacy.IPrivacySettingsManager;
++import android.privacy.PrivacySettings;
++import android.privacy.PrivacySettingsManager;
 +//----------------------------------------------------------
 +
  
  /**
   * Gives access to the system properties store.  The system properties
-@@ -40,6 +56,128 @@ public class SystemProperties
+@@ -40,6 +55,128 @@ public class SystemProperties
      private static native void native_set(String key, String def);
      private static native void native_add_change_callback();
  
@@ -1119,7 +1118,7 @@ index 1479035..aeaa47e 100644
      /**
       * Get the value for the given key.
       * @return an empty string if the key isn't found
-@@ -49,6 +187,15 @@ public class SystemProperties
+@@ -49,6 +186,15 @@ public class SystemProperties
          if (key.length() > PROP_NAME_MAX) {
              throw new IllegalArgumentException("key.length > " + PROP_NAME_MAX);
          }
@@ -1135,7 +1134,7 @@ index 1479035..aeaa47e 100644
          return native_get(key);
      }
  
-@@ -61,6 +208,15 @@ public class SystemProperties
+@@ -61,6 +207,15 @@ public class SystemProperties
          if (key.length() > PROP_NAME_MAX) {
              throw new IllegalArgumentException("key.length > " + PROP_NAME_MAX);
          }
@@ -1696,24 +1695,25 @@ index 8db18d3..db77153 100644
          // start recording
          synchronized(mRecordingStateLock) {
 diff --git a/media/java/android/media/MediaRecorder.java b/media/java/android/media/MediaRecorder.java
-index c3958d4..242decf 100644
+index c3958d4..062bcba 100644
 --- a/media/java/android/media/MediaRecorder.java
 +++ b/media/java/android/media/MediaRecorder.java
-@@ -29,6 +29,24 @@ import java.io.IOException;
+@@ -29,6 +29,25 @@ import java.io.IOException;
  import java.io.RandomAccessFile;
  import java.lang.ref.WeakReference;
  
 +
 +///////////////////////////////////////////
-+import android.os.Environment;
-+import java.io.FileWriter;
 +import java.io.File;
++import java.io.FileOutputStream;
++import java.io.FileWriter;
++import java.util.Random;
++import android.os.Environment;
 +import android.os.Binder;
 +import android.os.Process;
 +import android.os.ServiceManager;
 +import android.content.pm.IPackageManager;
 +import android.content.Context;
-+import java.util.Random;
 +
 +import android.privacy.IPrivacySettingsManager;
 +import android.privacy.PrivacySettings;
@@ -1724,7 +1724,7 @@ index c3958d4..242decf 100644
  /**
   * Used to record audio and video. The recording control is based on a
   * simple state machine (see below).
-@@ -92,6 +110,68 @@ public class MediaRecorder
+@@ -92,6 +111,68 @@ public class MediaRecorder
      private OnErrorListener mOnErrorListener;
      private OnInfoListener mOnInfoListener;
  
@@ -1793,7 +1793,7 @@ index c3958d4..242decf 100644
      /**
       * Default constructor.
       */
-@@ -106,6 +186,10 @@ public class MediaRecorder
+@@ -106,6 +187,10 @@ public class MediaRecorder
              mEventHandler = null;
          }
  
@@ -1804,7 +1804,7 @@ index c3958d4..242decf 100644
          String packageName = ActivityThread.currentPackageName();
          /* Native setup requires a weak reference to our object.
           * It's easier to create it here than in C++.
-@@ -152,9 +236,300 @@ public class MediaRecorder
+@@ -152,9 +237,300 @@ public class MediaRecorder
       * @see android.hardware.Camera#setPreviewDisplay(android.view.SurfaceHolder)
       */
      public void setPreviewDisplay(Surface sv) {
@@ -2105,7 +2105,7 @@ index c3958d4..242decf 100644
      /**
       * Defines the audio source. These constants are used with
       * {@link MediaRecorder#setAudioSource(int)}.
-@@ -413,6 +788,13 @@ public class MediaRecorder
+@@ -413,6 +789,13 @@ public class MediaRecorder
       * @see android.media.CamcorderProfile
       */
      public void setProfile(CamcorderProfile profile) {
@@ -2119,7 +2119,7 @@ index c3958d4..242decf 100644
          setOutputFormat(profile.fileFormat);
          setVideoFrameRate(profile.videoFrameRate);
          setVideoSize(profile.videoFrameWidth, profile.videoFrameHeight);
-@@ -447,6 +829,13 @@ public class MediaRecorder
+@@ -447,6 +830,13 @@ public class MediaRecorder
       * possible.
       */
      public void setCaptureRate(double fps) {
@@ -2133,7 +2133,7 @@ index c3958d4..242decf 100644
          // Make sure that time lapse is enabled when this method is called.
          setParameter("time-lapse-enable=1");
  
-@@ -674,6 +1063,13 @@ public class MediaRecorder
+@@ -674,6 +1064,13 @@ public class MediaRecorder
       * @param bitRate the video encoding bit rate in bits per second.
       */
      public void setVideoEncodingBitRate(int bitRate) {
@@ -2147,7 +2147,7 @@ index c3958d4..242decf 100644
          if (bitRate <= 0) {
              throw new IllegalArgumentException("Video encoding bit rate is not positive");
          }
-@@ -714,6 +1110,7 @@ public class MediaRecorder
+@@ -714,6 +1111,7 @@ public class MediaRecorder
      {
          mPath = null;
          mFd = fd;
@@ -2155,7 +2155,7 @@ index c3958d4..242decf 100644
      }
  
      /**
-@@ -728,6 +1125,7 @@ public class MediaRecorder
+@@ -728,6 +1126,7 @@ public class MediaRecorder
      {
          mFd = null;
          mPath = path;
@@ -2163,7 +2163,7 @@ index c3958d4..242decf 100644
      }
  
      // native implementation
-@@ -746,6 +1144,78 @@ public class MediaRecorder
+@@ -746,6 +1145,78 @@ public class MediaRecorder
       */
      public void prepare() throws IllegalStateException, IOException
      {
@@ -2242,7 +2242,7 @@ index c3958d4..242decf 100644
          if (mPath != null) {
              RandomAccessFile file = new RandomAccessFile(mPath, "rws");
              try {
-@@ -802,7 +1272,24 @@ public class MediaRecorder
+@@ -802,7 +1273,24 @@ public class MediaRecorder
       */
      public void reset() {
          native_reset();
@@ -2268,7 +2268,7 @@ index c3958d4..242decf 100644
          // make sure none of the listeners get called anymore
          mEventHandler.removeCallbacksAndMessages(null);
      }
-@@ -1084,5 +1571,81 @@ public class MediaRecorder
+@@ -1084,5 +1572,81 @@ public class MediaRecorder
      private native void setParameter(String nameValuePair);
  
      @Override
@@ -5840,10 +5840,10 @@ index 0000000..0ab3bd4
 +}
 diff --git a/privacy/java/android/privacy/surrogate/PrivacyConnectivityManager.java b/privacy/java/android/privacy/surrogate/PrivacyConnectivityManager.java
 new file mode 100644
-index 0000000..ab33989
+index 0000000..b495cc3
 --- /dev/null
 +++ b/privacy/java/android/privacy/surrogate/PrivacyConnectivityManager.java
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,220 @@
 +/**
 +* Copyright (C) 2012 CollegeDev
 +* This program is free software; you can redistribute it and/or modify it under
@@ -5885,8 +5885,8 @@ index 0000000..ab33989
 +	private PrivacySettingsManager pSetMan;
 +
 +	/** {@hide} */
-+	public PrivacyConnectivityManager(Context privacyContext, IPrivacySettingsManager privacyService, IConnectivityManager service, String packageName) {
-+		super(service, packageName);
++	public PrivacyConnectivityManager(Context privacyContext, IPrivacySettingsManager privacyService, IConnectivityManager service) {
++		super(service);
 +		context = privacyContext;
 +		pSetMan = new PrivacySettingsManager(privacyService);
 +	}
@@ -5909,17 +5909,19 @@ index 0000000..ab33989
 +			
 +	}
 +	
-+	@Override
-+	public void setMobileDataEnabled(boolean enabled) {
-+		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), Binder.getCallingUid());
-+		if(pSetMan != null && settings != null && settings.getSwitchConnectivitySetting() != PrivacySettings.REAL){
-+			pSetMan.notification(context.getPackageName(),-1, PrivacySettings.EMPTY, PrivacySettings.DATA_SWITCH_CONNECTIVITY, null, null); 
-+			//do nothing
-+		} else{
-+			pSetMan.notification(context.getPackageName(),-1, PrivacySettings.REAL, PrivacySettings.DATA_SWITCH_CONNECTIVITY, null, null);
-+			super.setMobileDataEnabled(enabled);
-+		}
-+	}
++// Deprecated: no longer available in Lollipop.
++//
++//	@Override
++//	public void setMobileDataEnabled(boolean enabled) {
++//		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), Binder.getCallingUid());
++//		if(pSetMan != null && settings != null && settings.getSwitchConnectivitySetting() != PrivacySettings.REAL){
++//			pSetMan.notification(context.getPackageName(),-1, PrivacySettings.EMPTY, PrivacySettings.DATA_SWITCH_CONNECTIVITY, null, null); 
++//			//do nothing
++//		} else{
++//			pSetMan.notification(context.getPackageName(),-1, PrivacySettings.REAL, PrivacySettings.DATA_SWITCH_CONNECTIVITY, null, null);
++//			super.setMobileDataEnabled(enabled);
++//		}
++//	}
 +	
 +	@Override
 +	public NetworkInfo[] getAllNetworkInfo() {
@@ -9018,7 +9020,7 @@ index f653af3..655b811 100644
          mVoiceRegState = state;
          mDataRegState = state;
 diff --git a/wifi/java/android/net/wifi/WifiInfo.java b/wifi/java/android/net/wifi/WifiInfo.java
-index 5bf3470..0a107ce 100644
+index 5bf3470..5a9377b 100644
 --- a/wifi/java/android/net/wifi/WifiInfo.java
 +++ b/wifi/java/android/net/wifi/WifiInfo.java
 @@ -211,6 +211,24 @@ public class WifiInfo implements Parcelable {
@@ -9038,7 +9040,7 @@ index 5bf3470..0a107ce 100644
 +        mSupplicantState = SupplicantState.UNINITIALIZED;
 +        mRssi = -9999;
 +        mLinkSpeed = -1;
-+        mHiddenSSID = false;
++        mFrequency = -1;
 +    }
 +    // END privacy-added
 +
