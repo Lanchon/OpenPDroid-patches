@@ -1,9 +1,9 @@
 diff --git a/src/java/android/privacy/surrogate/PrivacyCDMALTEPhone.java b/src/java/android/privacy/surrogate/PrivacyCDMALTEPhone.java
 new file mode 100644
-index 0000000..0c99dbb
+index 0000000..f89f626
 --- /dev/null
 +++ b/src/java/android/privacy/surrogate/PrivacyCDMALTEPhone.java
-@@ -0,0 +1,332 @@
+@@ -0,0 +1,349 @@
 +/**
 +* Copyright (C) 2012 Stefan Thiele
 +* This program is free software; you can redistribute it and/or modify it under
@@ -20,6 +20,7 @@ index 0000000..0c99dbb
 +
 +import android.content.Context;
 +import android.os.Binder;
++import android.os.Bundle;
 +import android.os.Process;
 +import android.os.ServiceManager;
 +import android.privacy.IPrivacySettingsManager;
@@ -52,6 +53,13 @@ index 0000000..0c99dbb
 +	
 +	public PrivacyCDMALTEPhone(Context context, CommandsInterface cmdI, PhoneNotifier pN) {
 +		super(context, cmdI, pN);
++		this.context = context;
++		pSetMan = new PrivacySettingsManager(context, IPrivacySettingsManager.Stub.asInterface(ServiceManager.getService("privacy")));
++		Log.i(P_TAG,"Constructor ready for package: " + context.getPackageName());
++	}
++	
++	public PrivacyCDMALTEPhone(Context context, CommandsInterface cmdI, PhoneNotifier pN, int phoneId) {
++		super(context, cmdI, pN, phoneId);
 +		this.context = context;
 +		pSetMan = new PrivacySettingsManager(context, IPrivacySettingsManager.Stub.asInterface(ServiceManager.getService("privacy")));
 +		Log.i(P_TAG,"Constructor ready for package: " + context.getPackageName());
@@ -310,38 +318,47 @@ index 0000000..0c99dbb
 +		}
 +	}
 +	
-+	@Override
-+    public Connection dial(String dialNumber) throws CallStateException{
-+		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+		if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			throw new CallStateException();
-+		}
-+		else{
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			return super.dial(dialNumber);
-+		}
-+    }
-+	
-+	@Override
-+    public Connection dial (String dialNumber, UUSInfo uusInfo) throws CallStateException{
-+		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+		if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			throw new CallStateException();
-+		}
-+		else{
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			return super.dial(dialNumber, uusInfo);
++	private void checkDial() throws CallStateException {
++	    if (pSetMan != null) {
++	        PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
++		    if (settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL) {
++			    pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
++			    throw new CallStateException();
++		    }
++        	pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
 +		}
 +	}
++
++//    @Override
++//    Connection dial(String dialString, UUSInfo uusInfo, int videoState, Bundle extras) throws CallStateException {
++//        checkDial();
++//        return super.dial(dialString, uusInfo, videoState, extras);
++//    }
++
++    @Override
++    public Connection dial(String dialString, UUSInfo uusInfo, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, uusInfo, videoState);
++    }
++
++    @Override
++    public Connection dial(String dialString, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState);
++    }
++
++    @Override
++    public Connection dial(String dialString, int videoState, Bundle extras) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState, extras);
++    }
 +}
 diff --git a/src/java/android/privacy/surrogate/PrivacyCDMAPhone.java b/src/java/android/privacy/surrogate/PrivacyCDMAPhone.java
 new file mode 100644
-index 0000000..77c7974
+index 0000000..16b100c
 --- /dev/null
 +++ b/src/java/android/privacy/surrogate/PrivacyCDMAPhone.java
-@@ -0,0 +1,312 @@
+@@ -0,0 +1,322 @@
 +/**
 +* Copyright (C) 2012 Stefen Thiele
 +* This program is free software; you can redistribute it and/or modify it under
@@ -358,6 +375,7 @@ index 0000000..77c7974
 +
 +import android.content.Context;
 +import android.os.Binder;
++import android.os.Bundle;
 +import android.os.Process;
 +import android.os.ServiceManager;
 +import android.privacy.IPrivacySettingsManager;
@@ -628,38 +646,47 @@ index 0000000..77c7974
 +		}
 +	}
 +	
-+	@Override
-+    public Connection dial(String dialNumber) throws CallStateException{
-+		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+		if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			throw new CallStateException();
-+		}
-+		else{
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			return super.dial(dialNumber);
-+		}
-+    }
-+	
-+	@Override
-+    public Connection dial (String dialNumber, UUSInfo uusInfo) throws CallStateException{
-+		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+		if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			throw new CallStateException();
-+		}
-+		else{
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			return super.dial(dialNumber, uusInfo);
++	private void checkDial() throws CallStateException {
++	    if (pSetMan != null) {
++	        PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
++		    if (settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL) {
++			    pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
++			    throw new CallStateException();
++		    }
++        	pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
 +		}
 +	}
++
++//    @Override
++//    Connection dial(String dialString, UUSInfo uusInfo, int videoState, Bundle extras) throws CallStateException {
++//        checkDial();
++//        return super.dial(dialString, uusInfo, videoState, extras);
++//    }
++
++    @Override
++    public Connection dial(String dialString, UUSInfo uusInfo, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, uusInfo, videoState);
++    }
++
++    @Override
++    public Connection dial(String dialString, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState);
++    }
++
++    @Override
++    public Connection dial(String dialString, int videoState, Bundle extras) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState, extras);
++    }
 +}
 diff --git a/src/java/android/privacy/surrogate/PrivacyGSMPhone.java b/src/java/android/privacy/surrogate/PrivacyGSMPhone.java
 new file mode 100644
-index 0000000..5033815
+index 0000000..c137272
 --- /dev/null
 +++ b/src/java/android/privacy/surrogate/PrivacyGSMPhone.java
-@@ -0,0 +1,314 @@
+@@ -0,0 +1,323 @@
 +/**
 +* Copyright (C) 2012 Stefan Thiele
 +* This program is free software; you can redistribute it and/or modify it under
@@ -676,6 +703,7 @@ index 0000000..5033815
 +
 +import android.content.Context;
 +import android.os.Binder;
++import android.os.Bundle;
 +import android.os.Process;
 +import android.os.ServiceManager;
 +import android.privacy.IPrivacySettingsManager;
@@ -706,8 +734,8 @@ index 0000000..5033815
 +	
 +	private Context context;
 +	
-+	public PrivacyGSMPhone(Context context, CommandsInterface cmdI, PhoneNotifier pN) {
-+		super(context,cmdI,pN);
++	public PrivacyGSMPhone(Context context, CommandsInterface cmdI, PhoneNotifier pN, int phoneId) {
++		super(context,cmdI,pN, phoneId);
 +		this.context = context;
 +		pSetMan = new PrivacySettingsManager(context, IPrivacySettingsManager.Stub.asInterface(ServiceManager.getService("privacy")));
 +		Log.i(P_TAG,"Constructor ready for package: " + context.getPackageName());
@@ -947,39 +975,47 @@ index 0000000..5033815
 +		
 +	}
 +	
-+	@Override
-+    public Connection dial(String dialNumber) throws CallStateException{
-+		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+		if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			throw new CallStateException();
-+		}
-+		else{
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			return super.dial(dialNumber);
-+		}
-+    }
-+	
-+	@Override
-+    public Connection dial (String dialNumber, UUSInfo uusInfo) throws CallStateException{
-+		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+		if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			throw new CallStateException();
-+		}
-+		else{
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			return super.dial(dialNumber, uusInfo);
++	private void checkDial() throws CallStateException {
++	    if (pSetMan != null) {
++	        PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
++		    if (settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL) {
++			    pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
++			    throw new CallStateException();
++		    }
++        	pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
 +		}
 +	}
 +
++    @Override
++    public Connection dial(String dialString, UUSInfo uusInfo, int videoState, Bundle extras) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, uusInfo, videoState, extras);
++    }
++
++    @Override
++    public Connection dial(String dialString, UUSInfo uusInfo, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, uusInfo, videoState);
++    }
++
++    @Override
++    public Connection dial(String dialString, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState);
++    }
++
++    @Override
++    public Connection dial(String dialString, int videoState, Bundle extras) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState, extras);
++    }
 +}
 diff --git a/src/java/android/privacy/surrogate/PrivacyPhoneProxy.java b/src/java/android/privacy/surrogate/PrivacyPhoneProxy.java
 new file mode 100644
-index 0000000..5da6d27
+index 0000000..1f51c82
 --- /dev/null
 +++ b/src/java/android/privacy/surrogate/PrivacyPhoneProxy.java
-@@ -0,0 +1,644 @@
+@@ -0,0 +1,621 @@
 +/**
 +* Copyright (C) 2012 Stefan Thiele
 +* This program is free software; you can redistribute it and/or modify it under
@@ -996,6 +1032,8 @@ index 0000000..5da6d27
 +
 +import android.content.Context;
 +import android.content.pm.IPackageManager;
++import android.os.Bundle;
++import android.os.Process;
 +import android.os.ServiceManager;
 +import android.privacy.IPrivacySettingsManager;
 +import android.privacy.PrivacySettings;
@@ -1006,7 +1044,6 @@ index 0000000..5da6d27
 +import android.telephony.cdma.CdmaCellLocation;
 +import android.telephony.gsm.GsmCellLocation;
 +import android.util.Log;
-+import android.os.Process;
 +
 +import com.android.internal.telephony.CallStateException;
 +import com.android.internal.telephony.Connection;
@@ -1091,81 +1128,57 @@ index 0000000..5da6d27
 +    	}
 +    }
 +    
++
++    private void checkDial() throws CallStateException {
++        if (pSetMan == null) return;
++        String packageName;
++    	if (context_available) {
++    	    packageName = context.getPackageName();
++    	    checkDial(packageName);
++	    } else {
++    		String packageNames[] = getPackageName();
++		    if (packageNames == null) return;
++	        for (int i = 0; i < packageNames.length; i++) {
++	            packageName = packageNames[i];
++        	    checkDial(packageName);
++	        }
++	        packageName = packageNames[0];
++	    }
++       	pSetMan.notification(packageName, 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
++	}
++
++    private void checkDial(String packageName) throws CallStateException {
++        PrivacySettings settings = pSetMan.getSettings(packageName, -1);
++        if (settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
++            pSetMan.notification(packageName, 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
++            throw new CallStateException();
++        }
++	}
++
++//    @Override
++//    public Connection dial(String dialString, UUSInfo uusInfo, int videoState, Bundle extras) throws CallStateException {
++//        checkDial();
++//        return super.dial(dialString, uusInfo, videoState, extras);
++//    }
++
 +    @Override
-+    public Connection dial(String dialNumber) throws CallStateException{
-+    	if(context_available){
-+			PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+			if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+				pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+				throw new CallStateException();
-+			}
-+			else{
-+				pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+				return super.dial(dialNumber);
-+			}
-+		}
-+    	else{
-+    		String package_names[] = getPackageName();
-+			boolean allowed = true;
-+			PrivacySettings settings = null;
-+			int package_trace = 0; //initalize default with 0, prevents array index out of bounds exception
-+			if(package_names == null) return super.dial(dialNumber); 
-+			for(int i=0;i<package_names.length;i++){
-+				settings = pSetMan.getSettings(package_names[i], -1);
-+				if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+					allowed = false;
-+					package_trace = i;
-+					break;
-+				}
-+			}
-+			if(allowed){
-+				pSetMan.notification(package_names[package_trace], 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+				return super.dial(dialNumber); 
-+			}
-+			else{
-+				pSetMan.notification(package_names[package_trace], 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+				throw new CallStateException();
-+			}
-+    	}
++    public Connection dial(String dialString, UUSInfo uusInfo, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, uusInfo, videoState);
 +    }
-+    
++
 +    @Override
-+    public Connection dial (String dialNumber, UUSInfo uusInfo) throws CallStateException{
-+    	if(context_available){
-+			PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+			if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+				pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+				throw new CallStateException();
-+			}
-+			else{
-+				pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+				return super.dial(dialNumber, uusInfo);
-+			}
-+		}
-+    	else{
-+    		String package_names[] = getPackageName();
-+			boolean allowed = true;
-+			PrivacySettings settings = null;
-+			int package_trace = 0; //initalize default with 0, prevents array index out of bounds exception
-+			if(package_names == null) return super.dial(dialNumber, uusInfo);
-+			for(int i=0;i<package_names.length;i++){
-+				settings = pSetMan.getSettings(package_names[i], -1);
-+				if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+					allowed = false;
-+					package_trace = i;
-+					break;
-+				}
-+			}
-+			if(allowed){
-+				pSetMan.notification(package_names[package_trace], 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+				return super.dial(dialNumber, uusInfo); 
-+			}
-+			else{
-+				pSetMan.notification(package_names[package_trace], 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+				throw new CallStateException();
-+			}
-+    	}
++    public Connection dial(String dialString, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState);
 +    }
++
++    @Override
++    public Connection dial(String dialString, int videoState, Bundle extras) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState, extras);
++    }
++
 +
 +	@Override
 +	public CellLocation getCellLocation() {
@@ -1626,10 +1639,10 @@ index 0000000..5da6d27
 +}
 diff --git a/src/java/android/privacy/surrogate/PrivacySipPhone.java b/src/java/android/privacy/surrogate/PrivacySipPhone.java
 new file mode 100644
-index 0000000..dbace04
+index 0000000..a086dd5
 --- /dev/null
 +++ b/src/java/android/privacy/surrogate/PrivacySipPhone.java
-@@ -0,0 +1,313 @@
+@@ -0,0 +1,322 @@
 +/**
 +* Copyright (C) 2012 Stefan Thiele
 +* This program is free software; you can redistribute it and/or modify it under
@@ -1647,6 +1660,7 @@ index 0000000..dbace04
 +import android.content.Context;
 +import android.net.sip.SipProfile;
 +import android.os.Binder;
++import android.os.Bundle;
 +import android.os.Process;
 +import android.os.ServiceManager;
 +import android.privacy.IPrivacySettingsManager;
@@ -1670,7 +1684,7 @@ index 0000000..dbace04
 + */
 +public class PrivacySipPhone extends SipPhone{
 +
-+	private static final String P_TAG = "PrivacyGSMPhone";
++	private static final String P_TAG = "PrivacySipPhone";
 +	
 +	private PrivacySettingsManager pSetMan;
 +	
@@ -1916,32 +1930,40 @@ index 0000000..dbace04
 +		
 +	}
 +	
-+	@Override
-+    public Connection dial(String dialNumber) throws CallStateException{
-+		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+		if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			throw new CallStateException();
-+		}
-+		else{
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			return super.dial(dialNumber);
-+		}
-+    }
-+	
-+	@Override
-+    public Connection dial (String dialNumber, UUSInfo uusInfo) throws CallStateException{
-+		PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
-+		if(pSetMan != null && settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL){
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			throw new CallStateException();
-+		}
-+		else{
-+			pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
-+			return super.dial(dialNumber, uusInfo);
++	private void checkDial() throws CallStateException {
++	    if (pSetMan != null) {
++	        PrivacySettings settings = pSetMan.getSettings(context.getPackageName(), -1);
++		    if (settings != null && settings.getPhoneCallSetting() != PrivacySettings.REAL) {
++			    pSetMan.notification(context.getPackageName(), 0, PrivacySettings.EMPTY, PrivacySettings.DATA_PHONE_CALL, null, null);
++			    throw new CallStateException();
++		    }
++        	pSetMan.notification(context.getPackageName(), 0, PrivacySettings.REAL, PrivacySettings.DATA_PHONE_CALL, null, null);
 +		}
 +	}
 +
++//    @Override
++//    Connection dial(String dialString, UUSInfo uusInfo, int videoState, Bundle extras) throws CallStateException {
++//        checkDial();
++//        return super.dial(dialString, uusInfo, videoState, extras);
++//    }
++
++    @Override
++    public Connection dial(String dialString, UUSInfo uusInfo, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, uusInfo, videoState);
++    }
++
++    @Override
++    public Connection dial(String dialString, int videoState) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState);
++    }
++
++    @Override
++    public Connection dial(String dialString, int videoState, Bundle extras) throws CallStateException {
++        checkDial();
++        return super.dial(dialString, videoState, extras);
++    }
 +}
 diff --git a/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java b/src/java/com/android/internal/telephony/IccSmsInterfaceManager.java
 index 2e9c17e..8588b83 100644
@@ -2121,7 +2143,7 @@ index 2e9c17e..8588b83 100644
       */
  
 diff --git a/src/java/com/android/internal/telephony/PhoneFactory.java b/src/java/com/android/internal/telephony/PhoneFactory.java
-index 174a8b4..fca9960 100644
+index 174a8b4..16a6ed9 100644
 --- a/src/java/com/android/internal/telephony/PhoneFactory.java
 +++ b/src/java/com/android/internal/telephony/PhoneFactory.java
 @@ -18,6 +18,19 @@ package com.android.internal.telephony;
@@ -2169,7 +2191,7 @@ index 174a8b4..fca9960 100644
 -                    sProxyPhones[i] = new PhoneProxy(phone);
 +                    //BEGIN PRIVACY ADDED
 +                    //sProxyPhones[i] = new PhoneProxy(phone);
-+                    sProxyPhones[i] = new PrivacyPhoneProxy(phone);
++                    sProxyPhones[i] = new PrivacyPhoneProxy(phone, context);
 +                    //END PRIVACY ADDED
                  }
                  mProxyController = ProxyController.getInstance(context, sProxyPhones,
