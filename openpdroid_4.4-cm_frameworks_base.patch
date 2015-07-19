@@ -8611,10 +8611,10 @@ index 2cdf9fb..5a0806a 100644
  }
  
  public class SystemServer {
-diff --git a/services/java/com/android/server/TelephonyRegistry.java b/services/java/com/android/server/TelephonyRegistry.java
+diff --git a/services/core/java/com/android/server/TelephonyRegistry.java b/services/core/java/com/android/server/TelephonyRegistry.java
 index 1845486..09b91ce 100644
---- a/services/java/com/android/server/TelephonyRegistry.java
-+++ b/services/java/com/android/server/TelephonyRegistry.java
+--- a/services/core/java/com/android/server/TelephonyRegistry.java
++++ b/services/core/java/com/android/server/TelephonyRegistry.java
 @@ -64,7 +64,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      private static final boolean DBG = false;
      private static final boolean DBG_LOC = false;
@@ -8782,10 +8782,10 @@ index 1845486..09b91ce 100644
          if (mRemoveList.size() > 0) {
              for (IBinder b: mRemoveList) {
                  remove(b);
-diff --git a/services/java/com/android/server/am/BroadcastQueue.java b/services/java/com/android/server/am/BroadcastQueue.java
+diff --git a/services/core/java/com/android/server/am/BroadcastQueue.java b/services/core/java/com/android/server/am/BroadcastQueue.java
 index 90b0896..3e13d3d 100644
---- a/services/java/com/android/server/am/BroadcastQueue.java
-+++ b/services/java/com/android/server/am/BroadcastQueue.java
+--- a/services/core/java/com/android/server/am/BroadcastQueue.java
++++ b/services/core/java/com/android/server/am/BroadcastQueue.java
 @@ -43,6 +43,8 @@ import android.util.EventLog;
  import android.util.Log;
  import android.util.Slog;
