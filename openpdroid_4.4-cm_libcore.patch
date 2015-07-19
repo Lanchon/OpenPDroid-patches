@@ -229,34 +229,25 @@ index 0000000..3cb0a02
 +    }
 +}
 diff --git a/luni/src/main/java/java/lang/ProcessManager.java b/luni/src/main/java/java/lang/ProcessManager.java
-index 28314b7..400668b 100644
+index ec87fda..817a904 100644
 --- a/luni/src/main/java/java/lang/ProcessManager.java
 +++ b/luni/src/main/java/java/lang/ProcessManager.java
-@@ -16,18 +16,23 @@
+@@ -18,11 +18,14 @@ package java.lang;
  
- package java.lang;
- 
+ import android.system.ErrnoException;
+ import android.util.MutableInt;
 +import java.io.BufferedReader;
 +import java.io.DataInputStream;
  import java.io.File;
  import java.io.FileDescriptor;
  import java.io.FileInputStream;
  import java.io.FileOutputStream;
- import java.io.IOException;
  import java.io.InputStream;
 +import java.io.InputStreamReader;
+ import java.io.IOException;
  import java.io.OutputStream;
  import java.lang.ref.ReferenceQueue;
- import java.lang.ref.WeakReference;
- import java.util.Arrays;
- import java.util.HashMap;
- import java.util.Map;
-+
-+
- import libcore.io.ErrnoException;
- import libcore.io.IoUtils;
- import libcore.io.Libcore;
-@@ -38,6 +43,51 @@ import static libcore.io.OsConstants.*;
+@@ -38,6 +41,51 @@ import static android.system.OsConstants.*;
   * Manages child processes.
   */
  final class ProcessManager {
@@ -308,7 +299,7 @@ index 28314b7..400668b 100644
      /**
       * Map from pid to Process. We keep weak references to the Process objects
       * and clean up the entries when no more external references are left. The
-@@ -166,7 +216,35 @@ final class ProcessManager {
+@@ -166,7 +214,35 @@ final class ProcessManager {
       */
      public Process exec(String[] taintedCommand, String[] taintedEnvironment, File workingDirectory,
              boolean redirectErrorStream) throws IOException {
@@ -345,7 +336,7 @@ index 28314b7..400668b 100644
          if (taintedCommand == null) {
              throw new NullPointerException("taintedCommand == null");
          }
-@@ -215,7 +293,14 @@ final class ProcessManager {
+@@ -215,7 +291,14 @@ final class ProcessManager {
                  wrapper.initCause(e);
                  throw wrapper;
              }
@@ -361,7 +352,7 @@ index 28314b7..400668b 100644
              ProcessReference processReference = new ProcessReference(process, referenceQueue);
              processReferences.put(pid, processReference);
  
-@@ -239,7 +324,13 @@ final class ProcessManager {
+@@ -239,7 +322,13 @@ final class ProcessManager {
  
          /** Sends output to process. */
          private final OutputStream outputStream;
@@ -375,7 +366,7 @@ index 28314b7..400668b 100644
          /** The process's exit value. */
          private Integer exitValue = null;
          private final Object exitValueMutex = new Object();
-@@ -248,14 +339,42 @@ final class ProcessManager {
+@@ -248,14 +337,42 @@ final class ProcessManager {
              this.pid = pid;
  
              this.errorStream = new ProcessInputStream(err);
@@ -420,7 +411,7 @@ index 28314b7..400668b 100644
                      try {
                          Libcore.os.kill(pid, SIGKILL);
                      } catch (ErrnoException e) {
-@@ -270,6 +389,11 @@ final class ProcessManager {
+@@ -270,6 +387,11 @@ final class ProcessManager {
          }
  
          public int exitValue() {
