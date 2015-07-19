@@ -1,17 +1,17 @@
 diff --git a/core/pathmap.mk b/core/pathmap.mk
-index 8f0f252..910eeb4 100644
+index 84d2b9d..4eb6b80 100644
 --- a/core/pathmap.mk
 +++ b/core/pathmap.mk
-@@ -115,6 +115,7 @@ FRAMEWORKS_BASE_SUBDIRS := \
+@@ -113,6 +113,7 @@ FRAMEWORKS_BASE_SUBDIRS := \
  	    media/mca/filterpacks \
  	    drm \
  	    opengl \
 +	    privacy \
  	    sax \
+ 	    telecomm \
  	    telephony \
- 	    wifi \
 diff --git a/target/product/core_minimal.mk b/target/product/core_minimal.mk
-index 6e822ee..5be700d 100644
+index f221094..b6ad632 100644
 --- a/target/product/core_minimal.mk
 +++ b/target/product/core_minimal.mk
 @@ -29,6 +29,7 @@ PRODUCT_PACKAGES += \
@@ -21,4 +21,4 @@ index 6e822ee..5be700d 100644
 +    PDroid \
      SettingsProvider \
      Shell \
-     bu \
+     bcc \
