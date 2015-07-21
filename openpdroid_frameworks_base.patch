@@ -8120,39 +8120,72 @@ index 0000000..361b7da
 +}
 diff --git a/services/core/java/com/android/server/PrivacyTelephonyRegistry.java b/services/core/java/com/android/server/PrivacyTelephonyRegistry.java
 new file mode 100644
-index 0000000..d0c5805
+index 0000000..9936da2
 --- /dev/null
 +++ b/services/core/java/com/android/server/PrivacyTelephonyRegistry.java
-@@ -0,0 +1,414 @@
+@@ -0,0 +1,603 @@
 +package com.android.server;
 +
-+import com.android.internal.telephony.IPhoneStateListener;
-+
++import android.app.ActivityManager;
 +import android.content.BroadcastReceiver;
 +import android.content.Context;
 +import android.content.Intent;
 +import android.content.IntentFilter;
++import android.content.pm.PackageManager;
++import android.net.LinkProperties;
++import android.net.NetworkCapabilities;
++import android.os.Binder;
 +import android.os.Bundle;
++import android.os.Handler;
 +import android.os.IBinder;
++import android.os.Message;
 +import android.os.RemoteException;
-+import android.os.ServiceManager;
-+import android.privacy.IPrivacySettingsManager;
-+import android.privacy.PrivacySettings;
-+import android.privacy.PrivacySettingsManager;
-+import android.telephony.CellInfo;
-+import android.telephony.CellInfoGsm;
-+import android.telephony.CellIdentityGsm;
++import android.os.UserHandle;
++import android.telephony.CellLocation;
++import android.telephony.DataConnectionRealTimeInfo;
++import android.telephony.Rlog;
++import android.telephony.TelephonyManager;
++import android.telephony.SubscriptionManager;
 +import android.telephony.PhoneStateListener;
 +import android.telephony.ServiceState;
 +import android.telephony.SignalStrength;
-+import android.telephony.TelephonyManager;
++import android.telephony.CellInfo;
++import android.telephony.VoLteServiceState;
++import android.telephony.DisconnectCause;
++import android.telephony.PreciseCallState;
++import android.telephony.PreciseDataConnectionState;
++import android.telephony.PreciseDisconnectCause;
++import android.text.TextUtils;
++import android.text.format.Time;
++
++import java.util.ArrayList;
++import java.util.Calendar;
++import java.util.List;
++import java.io.FileDescriptor;
++import java.io.PrintWriter;
++
++import com.android.internal.app.IBatteryStats;
++import com.android.internal.telephony.ITelephonyRegistry;
++import com.android.internal.telephony.IPhoneStateListener;
++import com.android.internal.telephony.DefaultPhoneNotifier;
++import com.android.internal.telephony.PhoneConstants;
++import com.android.internal.telephony.ServiceStateTracker;
++import com.android.internal.telephony.TelephonyIntents;
++import com.android.server.am.BatteryStatsService;
++
++
++import android.os.Process;
++import android.os.ServiceManager;
++import android.telephony.CellInfoGsm;
++import android.telephony.CellIdentityGsm;
 +import android.telephony.cdma.CdmaCellLocation;
 +import android.telephony.gsm.GsmCellLocation;
-+import java.util.List;
-+import java.util.ArrayList;
-+import java.util.Arrays;
 +import android.util.Log;
-+import android.os.Process;
++import java.util.Arrays;
++
++import android.privacy.IPrivacySettingsManager;
++import android.privacy.PrivacySettings;
++import android.privacy.PrivacySettingsManager;
 +
 +
 +public class PrivacyTelephonyRegistry extends TelephonyRegistry{
@@ -8262,16 +8295,25 @@ index 0000000..d0c5805
 +    	 IntentFilter intentFilter = new IntentFilter("android.privacy.BLOCKED_PHONE_CALL");
 +    	 mContext.registerReceiver(privacyReceiver, intentFilter);
 +    }
-+	
-+	public void listen(String pkgForDebug, IPhoneStateListener callback, int events,
-+            boolean notifyNow) {
-+        // Slog.d(TAG, "listen pkg=" + pkgForDebug + " events=0x" +
-+        // Integer.toHexString(events));
++
++
++    @Override
++    protected void listen(String pkgForDebug, IPhoneStateListener callback, int events,
++            boolean notifyNow, long subId) {
++        int callerUid = UserHandle.getCallingUserId();
++        int myUid = UserHandle.myUserId();
++        if (VDBG) {
++            log("listen: E pkg=" + pkgForDebug + " events=0x" + Integer.toHexString(events)
++                + " notifyNow=" + notifyNow + " subId=" + subId + " myUid=" + myUid
++                + " callerUid=" + callerUid);
++        }
++        // BEGIN privacy-modified
 +		try{
 +			registerPrivacy();
 +		} catch(Exception e){
 +			Log.e(P_TAG,"failed to register privacy broadcastreceiver");
 +		}
++        // END privacy-modified
 +        if (events != 0) {
 +            /* Checks permission and throws Security exception */
 +            checkListenerPermission(events);
@@ -8292,22 +8334,41 @@ index 0000000..d0c5805
 +                    r.binder = b;
 +                    r.callback = callback;
 +                    r.pkgForDebug = pkgForDebug;
++                    r.callerUid = callerUid;
++                    // Legacy applications pass SubscriptionManager.DEFAULT_SUB_ID,
++                    // force all illegal subId to SubscriptionManager.DEFAULT_SUB_ID
++                    if (!SubscriptionManager.isValidSubId(subId)) {
++                        r.subId = SubscriptionManager.DEFAULT_SUB_ID;
++                     } else {//APP specify subID
++                        r.subId = subId;
++                    }
++                    r.phoneId = SubscriptionManager.getPhoneId(r.subId);
++
 +                    mRecords.add(r);
++                    if (DBG) log("listen: add new record");
 +                }
-+                int send = events & (events ^ r.events);
++
++                int phoneId = r.phoneId;
 +                r.events = events;
-+                if (notifyNow) {
-+                    if ((events & PhoneStateListener.LISTEN_SERVICE_STATE) != 0) {
-+//                        try {
-+//                        	//not forward now, wait for next
-+//                            //r.callback.onServiceStateChanged(new ServiceState(mServiceState));
-+//                        } catch (RemoteException ex) {
-+//                            remove(r.binder);
-+//                        }
++                if (DBG) {
++                    log("listen: r=" + r + " r.subId=" + r.subId + " phoneId=" + phoneId);
++                }
++                if (VDBG) toStringLogSSC("listen");
++                if (notifyNow && validatePhoneId(phoneId)) {
++                    // PRIVACY: not forward now, wait for next
++                    if (/* PRIVACY */ isPackageAllowed(PERMISSION_SERVICE_STATE, pkgForDebug) && (events & PhoneStateListener.LISTEN_SERVICE_STATE) != 0) {
++                        try {
++                            if (VDBG) log("listen: call onSSC state=" + mServiceState[phoneId]);
++                            r.callback.onServiceStateChanged(
++                                    new ServiceState(mServiceState[phoneId]));
++                        } catch (RemoteException ex) {
++                            remove(r.binder);
++                        }
 +                    }
 +                    if ((events & PhoneStateListener.LISTEN_SIGNAL_STRENGTH) != 0) {
 +                        try {
-+                            int gsmSignalStrength = mSignalStrength.getGsmSignalStrength();
++                            int gsmSignalStrength = mSignalStrength[phoneId]
++                                    .getGsmSignalStrength();
 +                            r.callback.onSignalStrengthChanged((gsmSignalStrength == 99 ? -1
 +                                    : gsmSignalStrength));
 +                        } catch (RemoteException ex) {
@@ -8316,51 +8377,57 @@ index 0000000..d0c5805
 +                    }
 +                    if ((events & PhoneStateListener.LISTEN_MESSAGE_WAITING_INDICATOR) != 0) {
 +                        try {
-+                            r.callback.onMessageWaitingIndicatorChanged(mMessageWaiting);
++                            r.callback.onMessageWaitingIndicatorChanged(
++                                    mMessageWaiting[phoneId]);
 +                        } catch (RemoteException ex) {
 +                            remove(r.binder);
 +                        }
 +                    }
 +                    if ((events & PhoneStateListener.LISTEN_CALL_FORWARDING_INDICATOR) != 0) {
 +                        try {
-+                            r.callback.onCallForwardingIndicatorChanged(mCallForwarding);
++                            r.callback.onCallForwardingIndicatorChanged(
++                                    mCallForwarding[phoneId]);
 +                        } catch (RemoteException ex) {
 +                            remove(r.binder);
 +                        }
 +                    }
-+                    if ((events & PhoneStateListener.LISTEN_CELL_LOCATION) != 0) {
-+//                        try {
-+//                        	//we do not forward now!
-+//                            //r.callback.onCellLocationChanged(new Bundle(mCellLocation));
-+//                        } catch (RemoteException ex) {
-+//                            remove(r.binder);
-+//                        }
++                    // PRIVACY: not forward now, wait for next
++                    if (/* PRIVACY */ isPackageAllowed(PERMISSION_CELL_LOCATION, pkgForDebug) && validateEventsAndUserLocked(r, PhoneStateListener.LISTEN_CELL_LOCATION)) {
++                        try {
++                            if (DBG_LOC) log("listen: mCellLocation = "
++                                    + mCellLocation[phoneId]);
++                            r.callback.onCellLocationChanged(
++                                    new Bundle(mCellLocation[phoneId]));
++                        } catch (RemoteException ex) {
++                            remove(r.binder);
++                        }
 +                    }
 +                    if ((events & PhoneStateListener.LISTEN_CALL_STATE) != 0) {
 +                        try {
-+                            r.callback.onCallStateChanged(mCallState, mCallIncomingNumber);
++                            r.callback.onCallStateChanged(mCallState[phoneId],
++                                     mCallIncomingNumber[phoneId]);
 +                        } catch (RemoteException ex) {
 +                            remove(r.binder);
 +                        }
 +                    }
 +                    if ((events & PhoneStateListener.LISTEN_DATA_CONNECTION_STATE) != 0) {
 +                        try {
-+                            r.callback.onDataConnectionStateChanged(mDataConnectionState,
-+                                mDataConnectionNetworkType);
++                            r.callback.onDataConnectionStateChanged(mDataConnectionState[phoneId],
++                                mDataConnectionNetworkType[phoneId]);
 +                        } catch (RemoteException ex) {
 +                            remove(r.binder);
 +                        }
 +                    }
 +                    if ((events & PhoneStateListener.LISTEN_DATA_ACTIVITY) != 0) {
 +                        try {
-+                            r.callback.onDataActivity(mDataActivity);
++                            r.callback.onDataActivity(mDataActivity[phoneId]);
 +                        } catch (RemoteException ex) {
 +                            remove(r.binder);
 +                        }
 +                    }
 +                    if ((events & PhoneStateListener.LISTEN_SIGNAL_STRENGTHS) != 0) {
 +                        try {
-+                            r.callback.onSignalStrengthsChanged(mSignalStrength);
++                            r.callback.onSignalStrengthsChanged(mSignalStrength[phoneId]);
 +                        } catch (RemoteException ex) {
 +                            remove(r.binder);
 +                        }
@@ -8372,13 +8439,37 @@ index 0000000..d0c5805
 +                            remove(r.binder);
 +                        }
 +                    }
-+                    if ((events & PhoneStateListener.LISTEN_CELL_INFO) != 0) {
-+//                        try {
-+//                        	//we also do not forward now
-+//                            //r.callback.onCellInfoChanged(new CellInfo(mCellInfo));
-+//                        } catch (RemoteException ex) {
-+//                            remove(r.binder);
-+//                        }
++                    // PRIVACY: not forward now, wait for next
++                    if (/* PRIVACY */ isPackageAllowed(PERMISSION_CELL_INFO, pkgForDebug) && validateEventsAndUserLocked(r, PhoneStateListener.LISTEN_CELL_INFO)) {
++                        try {
++                            if (DBG_LOC) log("listen: mCellInfo[" + phoneId + "] = "
++                                    + mCellInfo.get(phoneId));
++                            r.callback.onCellInfoChanged(mCellInfo.get(phoneId));
++                        } catch (RemoteException ex) {
++                            remove(r.binder);
++                        }
++                    }
++                    if ((events & PhoneStateListener.LISTEN_DATA_CONNECTION_REAL_TIME_INFO) != 0) {
++                        try {
++                            r.callback.onDataConnectionRealTimeInfoChanged(mDcRtInfo);
++                        } catch (RemoteException ex) {
++                            remove(r.binder);
++                        }
++                    }
++                    if ((events & PhoneStateListener.LISTEN_PRECISE_CALL_STATE) != 0) {
++                        try {
++                            r.callback.onPreciseCallStateChanged(mPreciseCallState);
++                        } catch (RemoteException ex) {
++                            remove(r.binder);
++                        }
++                    }
++                    if ((events & PhoneStateListener.LISTEN_PRECISE_DATA_CONNECTION_STATE) != 0) {
++                        try {
++                            r.callback.onPreciseDataConnectionStateChanged(
++                                    mPreciseDataConnectionState);
++                        } catch (RemoteException ex) {
++                            remove(r.binder);
++                        }
 +                    }
 +                }
 +            }
@@ -8426,23 +8517,85 @@ index 0000000..d0c5805
 +		}
 +	}
 +
++
 +	@Override
-+	public void notifyServiceState(ServiceState state) {
++    public void notifyServiceStateForPhoneId(int phoneId, long subId, ServiceState state) {
 +        if (!checkNotifyPermission("notifyServiceState()")){
 +            return;
 +        }
++
 +        synchronized (mRecords) {
-+            mServiceState = state;
++            if (VDBG) {
++                log("notifyServiceStateForSubscriber: subId=" + subId + " phoneId=" + phoneId
++                    + " state=" + state);
++            }
++            if (validatePhoneId(phoneId)) {
++                mServiceState[phoneId] = state;
++                logServiceStateChanged("notifyServiceStateForSubscriber", subId, phoneId, state);
++                if (VDBG) toStringLogSSC("notifyServiceStateForSubscriber");
++
++                for (Record r : mRecords) {
++                    if (VDBG) {
++                        log("notifyServiceStateForSubscriber: r=" + r + " subId=" + subId
++                                + " phoneId=" + phoneId + " state=" + state);
++                    }
++                    if (((r.events & PhoneStateListener.LISTEN_SERVICE_STATE) != 0) &&
++                            ((r.subId == subId) ||
++                            (r.subId == SubscriptionManager.DEFAULT_SUB_ID))) {
++                        try {
++                            if (DBG) {
++                                log("notifyServiceStateForSubscriber: callback.onSSC r=" + r
++                                        + " subId=" + subId + " phoneId=" + phoneId
++                                        + " state=" + state);
++                            }
++                            // BEGIN privacy-added
++                            //r.callback.onServiceStateChanged(new ServiceState(state));
++                            ServiceState ss = new ServiceState(state);
++                        	if (!isPackageAllowed(PERMISSION_SERVICE_STATE, r.pkgForDebug)) {
++                                ss.setOperatorName("", "", "");
++                       		    Log.i(P_TAG,"package: " + r.pkgForDebug + " blocked for ServiceState");
++                        	} else {
++                        		Log.i(P_TAG,"package: " + r.pkgForDebug + " allowed for ServiceState");
++                        	}
++                            r.callback.onServiceStateChanged(ss);
++                            // END privacy-added
++                        } catch (RemoteException ex) {
++                            mRemoveList.add(r.binder);
++                        }
++                    }
++                }
++            } else {
++                log("notifyServiceStateForSubscriber: INVALID phoneId=" + phoneId);
++            }
++            handleRemoveListLocked();
++        }
++        broadcastServiceStateChanged(state, subId);
++    }
++
++
++    /*
++    @Override
++    public void notifyVoLteServiceStateChanged(VoLteServiceState lteState) {
++        if (!checkNotifyPermission("notifyVoLteServiceStateChanged()")) {
++            return;
++        }
++        synchronized (mRecords) {
++            mVoLteServiceState = lteState;
 +            for (Record r : mRecords) {
-+                if ((r.events & PhoneStateListener.LISTEN_SERVICE_STATE) != 0) {
++                if ((r.events & PhoneStateListener.LISTEN_VOLTE_STATE) != 0) {
 +                    try {
-+                    	if(!isPackageAllowed(PERMISSION_SERVICE_STATE,r.pkgForDebug)){
-+                    		 state.setOperatorName("", "", "");
-+                    		 Log.i(P_TAG,"package: " + r.pkgForDebug + " blocked for Cellinfo");
++                        // BEGIN privacy-added
++                        //r.callback.onVoLteServiceStateChanged(
++                        //        new VoLteServiceState(mVoLteServiceState));
++                        VoLteServiceState vss = new VoLteServiceState(mVoLteServiceState);
++                    	if (!isPackageAllowed(PERMISSION_SERVICE_STATE, r.pkgForDebug)) {
++                            vss.setOperatorName("", "", "");
++                   		    Log.i(P_TAG,"package: " + r.pkgForDebug + " blocked for VoLteServiceState");
++                    	} else {
++                    		Log.i(P_TAG,"package: " + r.pkgForDebug + " allowed for VoLteServiceState");
 +                    	}
-+                    	else
-+                    		Log.i(P_TAG,"package: " + r.pkgForDebug + " allowed for Cellinfo");
-+                        r.callback.onServiceStateChanged(new ServiceState(state));
++                        r.callback.onVoLteServiceStateChanged(vss);
++                        // END privacy-added
 +                    } catch (RemoteException ex) {
 +                        mRemoveList.add(r.binder);
 +                    }
@@ -8450,103 +8603,149 @@ index 0000000..d0c5805
 +            }
 +            handleRemoveListLocked();
 +        }
-+        broadcastServiceStateChanged(state);
 +    }
-+	
++    */
++
++
 +	@Override
-+	public void notifyCellInfo(List<CellInfo> cellInfo) {
++    public void notifyCellInfoForSubscriber(long subId, List<CellInfo> cellInfo) {
 +        if (!checkNotifyPermission("notifyCellInfo()")) {
 +            return;
 +        }
++        if (VDBG) {
++            log("notifyCellInfoForSubscriber: subId=" + subId
++                + " cellInfo=" + cellInfo);
++        }
++
 +        synchronized (mRecords) {
-+            mCellInfo = cellInfo;
-+            for (Record r : mRecords) {
-+                if ((r.events & PhoneStateListener.LISTEN_CELL_INFO) != 0) {
-+                    try {
-+                    	if(!isPackageAllowed(PERMISSION_CELL_INFO,r.pkgForDebug)){
-+                    		//for testings only at first
-+                            CellInfoGsm fakeCellInfo = new CellInfoGsm(); 
-+                            CellIdentityGsm fakeCellIdentity = new CellIdentityGsm(11,11,549,525);
-+                            fakeCellInfo.setCellIdentity(fakeCellIdentity);
-+                    		//r.callback.onCellInfoChanged(new CellInfoGsm(CellInfo.TIMESTAMP_TYPE_UNKNOWN,System.currentTimeMillis(),System.currentTimeMillis(),true,new SignalStrength(),new CellIdentityGsm(11,11,549,545,2,"unknown")));
-+                    		r.callback.onCellInfoChanged(new ArrayList<CellInfo>(Arrays.asList(fakeCellInfo)));
-+                    		Log.i(P_TAG,"package: " + r.pkgForDebug + " blocked for Cellinfo");
-+                    	}
-+                    	else{
-+                    		r.callback.onCellInfoChanged(cellInfo);
-+                    		Log.i(P_TAG,"package: " + r.pkgForDebug + " allowed for Cellinfo");
-+                    	}
-+                    } catch (RemoteException ex) {
-+                        mRemoveList.add(r.binder);
++            int phoneId = SubscriptionManager.getPhoneId(subId);
++            if (validatePhoneId(phoneId)) {
++                mCellInfo.set(phoneId, cellInfo);
++                for (Record r : mRecords) {
++                    if (validateEventsAndUserLocked(r, PhoneStateListener.LISTEN_CELL_INFO) &&
++                            ((r.subId == subId) ||
++                            (r.subId == SubscriptionManager.DEFAULT_SUB_ID))) {
++                        try {
++                            if (DBG_LOC) {
++                                log("notifyCellInfo: mCellInfo=" + cellInfo + " r=" + r);
++                            }
++                            // BEGIN privacy-added
++                            //r.callback.onCellInfoChanged(cellInfo);
++                        	if (!isPackageAllowed(PERMISSION_CELL_INFO, r.pkgForDebug)) {
++                        		//for testings only at first
++                                CellInfoGsm fakeCellInfo = new CellInfoGsm(); 
++                                CellIdentityGsm fakeCellIdentity = new CellIdentityGsm(11,11,549,525);
++                                fakeCellInfo.setCellIdentity(fakeCellIdentity);
++                        		//r.callback.onCellInfoChanged(new CellInfoGsm(CellInfo.TIMESTAMP_TYPE_UNKNOWN,System.currentTimeMillis(),System.currentTimeMillis(),true,new SignalStrength(),new CellIdentityGsm(11,11,549,545,2,"unknown")));
++                        		r.callback.onCellInfoChanged(new ArrayList<CellInfo>(Arrays.asList(fakeCellInfo)));
++                        		Log.i(P_TAG,"package: " + r.pkgForDebug + " blocked for CellInfo");
++                        	} else {
++                        		r.callback.onCellInfoChanged(cellInfo);
++                        		Log.i(P_TAG,"package: " + r.pkgForDebug + " allowed for CellInfo");
++                        	}
++                            // END privacy-added
++                        } catch (RemoteException ex) {
++                            mRemoveList.add(r.binder);
++                        }
 +                    }
 +                }
 +            }
 +            handleRemoveListLocked();
 +        }
 +    }
-+	
-+	@Override
-+	public void notifyCellLocation(Bundle cellLocation) {
++
++
++    @Override
++    public void notifyCellLocationForSubscriber(long subId, Bundle cellLocation) {
++        log("notifyCellLocationForSubscriber: subId=" + subId
++                + " cellLocation=" + cellLocation);
 +        if (!checkNotifyPermission("notifyCellLocation()")) {
 +            return;
 +        }
++        if (VDBG) {
++            log("notifyCellLocationForSubscriber: subId=" + subId
++                + " cellLocation=" + cellLocation);
++        }
 +        synchronized (mRecords) {
-+            mCellLocation = cellLocation;
-+            boolean isCDMA = false;
-+            boolean goNormal = false;
-+            try{
-+            	if(cellLocation.containsKey("lac")){
-+            		//it is gsm cell location object, handle it!
-+            		isCDMA = false;
-+            	}
-+            	else{
-+            		//it is cdma cell location object, handle it!
-+            		isCDMA = true;
-+            	}
-+            }
-+            catch(Exception e){
-+            	//nothing here at all
-+            	goNormal = true;
-+            }
-+            for (Record r : mRecords) {
-+                if ((r.events & PhoneStateListener.LISTEN_CELL_LOCATION) != 0) {
-+                    try {
-+                    	if(!isPackageAllowed(PERMISSION_CELL_LOCATION,r.pkgForDebug) && !goNormal){
-+                    		Bundle output = new Bundle();
-+                    		if(isCDMA){
-+                    			CdmaCellLocation tmp = new CdmaCellLocation();
-+                    			tmp.fillInNotifierBundle(output);
-+                    		}
-+                    		else{
-+                    			GsmCellLocation tmp = new GsmCellLocation();
-+                    			tmp.fillInNotifierBundle(output);
-+                    		}
-+                    		r.callback.onCellLocationChanged(new Bundle(output));
-+                    		Log.i(P_TAG,"package: " + r.pkgForDebug + " blocked for CellLocation");
-+                    	}
-+                    	else{
-+                    		r.callback.onCellLocationChanged(new Bundle(cellLocation));
-+                    		Log.i(P_TAG,"package: " + r.pkgForDebug + " allowed for CellLocation");
-+                    	}
-+                    } catch (RemoteException ex) {
-+                        mRemoveList.add(r.binder);
++            int phoneId = SubscriptionManager.getPhoneId(subId);
++            if (validatePhoneId(phoneId)) {
++                mCellLocation[phoneId] = cellLocation;
++                // BEGIN privacy-modified
++                boolean isCDMA = false;
++                boolean goNormal = false;
++                try{
++                	if(cellLocation.containsKey("lac")){
++                		//it is gsm cell location object, handle it!
++                		isCDMA = false;
++                	}
++                	else{
++                		//it is cdma cell location object, handle it!
++                		isCDMA = true;
++                	}
++                }
++                catch(Exception e){
++                	//nothing here at all
++                	goNormal = true;
++                }
++                // END privacy-modified
++                for (Record r : mRecords) {
++                    if (validateEventsAndUserLocked(r, PhoneStateListener.LISTEN_CELL_LOCATION) &&
++                            ((r.subId == subId) ||
++                            (r.subId == SubscriptionManager.DEFAULT_SUB_ID))) {
++                        try {
++                            if (DBG_LOC) {
++                                log("notifyCellLocation: cellLocation=" + cellLocation
++                                        + " r=" + r);
++                            }
++                            // BEGIN privacy-modified
++                            //r.callback.onCellLocationChanged(new Bundle(cellLocation));
++                            Bundle cl;
++                        	if (goNormal || isPackageAllowed(PERMISSION_CELL_LOCATION,r.pkgForDebug)) {
++                        		cl = new Bundle(cellLocation);
++                        		Log.i(P_TAG,"package: " + r.pkgForDebug + " allowed for CellLocation");
++                        	} else {
++                        		cl = new Bundle();
++                        		if (isCDMA) {
++                        			CdmaCellLocation tmp = new CdmaCellLocation();
++                        			tmp.fillInNotifierBundle(cl);
++                        		} else {
++                        			GsmCellLocation tmp = new GsmCellLocation();
++                        			tmp.fillInNotifierBundle(cl);
++                        		}
++                        		Log.i(P_TAG,"package: " + r.pkgForDebug + " blocked for CellLocation");
++                        	}
++                            r.callback.onCellLocationChanged(cl);
++                            // END privacy-modified
++                        } catch (RemoteException ex) {
++                            mRemoveList.add(r.binder);
++                        }
 +                    }
-+
 +                }
 +            }
 +            handleRemoveListLocked();
 +        }
 +    }
++
 +}
 diff --git a/services/core/java/com/android/server/TelephonyRegistry.java b/services/core/java/com/android/server/TelephonyRegistry.java
-index 354b20a..0cf6346 100644
+index 354b20a..bf3f718 100644
 --- a/services/core/java/com/android/server/TelephonyRegistry.java
 +++ b/services/core/java/com/android/server/TelephonyRegistry.java
-@@ -84,7 +84,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-     private static final boolean DBG_LOC = false; // STOPSHIP if true
-     private static final boolean VDBG = false; // STOPSHIP if true
- 
+@@ -80,11 +80,16 @@ import com.android.server.am.BatteryStatsService;
+  */
+ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+     private static final String TAG = "TelephonyRegistry";
+-    private static final boolean DBG = false; // STOPSHIP if true
+-    private static final boolean DBG_LOC = false; // STOPSHIP if true
+-    private static final boolean VDBG = false; // STOPSHIP if true
+-
 -    private static class Record {
++    // BEGIN privacy-modified
++    protected static final boolean DBG = false; // STOPSHIP if true
++    protected static final boolean DBG_LOC = false; // STOPSHIP if true
++    protected static final boolean VDBG = false; // STOPSHIP if true
++    // END privacy-modified
++
 +    // BEGIN privacy-modified
 +    // private static class Record {
 +    public static class Record {
@@ -8554,7 +8753,7 @@ index 354b20a..0cf6346 100644
          String pkgForDebug;
  
          IBinder binder;
-@@ -106,31 +109,35 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+@@ -106,31 +111,35 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
          }
      }
  
@@ -8602,28 +8801,48 @@ index 354b20a..0cf6346 100644
  
      private boolean[] mDataConnectionPossible;
  
-@@ -144,13 +151,16 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+@@ -144,17 +153,17 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
  
      private NetworkCapabilities[] mDataConnectionNetworkCapabilities;
  
 -    private Bundle[] mCellLocation;
 +    protected Bundle[] mCellLocation;
-+
-+    protected int[] mDataConnectionNetworkType;
-+
-+    protected int mOtaspMode = ServiceStateTracker.OTASP_UNKNOWN;
  
 -    private int[] mDataConnectionNetworkType;
-+    protected ArrayList<List<CellInfo>> mCellInfo = null;
++    protected int[] mDataConnectionNetworkType;
  
 -    private int mOtaspMode = ServiceStateTracker.OTASP_UNKNOWN;
-+    // END privacy-modified
++    protected int mOtaspMode = ServiceStateTracker.OTASP_UNKNOWN;
  
 -    private ArrayList<List<CellInfo>> mCellInfo = null;
++    protected ArrayList<List<CellInfo>> mCellInfo = null;
  
-     private VoLteServiceState mVoLteServiceState = new VoLteServiceState();
+-    private VoLteServiceState mVoLteServiceState = new VoLteServiceState();
++    protected VoLteServiceState mVoLteServiceState = new VoLteServiceState();
  
-@@ -227,7 +237,11 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+-    private DataConnectionRealTimeInfo mDcRtInfo = new DataConnectionRealTimeInfo();
++    protected DataConnectionRealTimeInfo mDcRtInfo = new DataConnectionRealTimeInfo();
+ 
+     private int mRingingCallState = PreciseCallState.PRECISE_CALL_STATE_IDLE;
+ 
+@@ -162,11 +171,14 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+ 
+     private int mBackgroundCallState = PreciseCallState.PRECISE_CALL_STATE_IDLE;
+ 
+-    private PreciseCallState mPreciseCallState = new PreciseCallState();
++    protected PreciseCallState mPreciseCallState = new PreciseCallState();
+ 
+-    private PreciseDataConnectionState mPreciseDataConnectionState =
++    protected PreciseDataConnectionState mPreciseDataConnectionState =
+                 new PreciseDataConnectionState();
+ 
++    // END privacy-modified
++
++
+     static final int PHONE_STATE_PERMISSION_MASK =
+                 PhoneStateListener.LISTEN_CALL_FORWARDING_INDICATOR |
+                 PhoneStateListener.LISTEN_CALL_STATE |
+@@ -227,7 +239,11 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      // calls go through a oneway interface and local calls going through a
      // handler before they get to app code.
  
@@ -8636,7 +8855,22 @@ index 354b20a..0cf6346 100644
          CellLocation  location = CellLocation.getEmpty();
  
          mContext = context;
-@@ -472,7 +486,11 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+@@ -302,8 +318,13 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+         listen(pkgForDebug, callback, events, notifyNow, subId);
+     }
+ 
+-    private void listen(String pkgForDebug, IPhoneStateListener callback, int events,
++    // BEGIN privacy-modified
++    // made protected to allow subclassing
++    //private void listen(String pkgForDebug, IPhoneStateListener callback, int events,
++    //        boolean notifyNow, long subId) {
++    protected void listen(String pkgForDebug, IPhoneStateListener callback, int events,
+             boolean notifyNow, long subId) {
++    // END privacy-modified
+         int callerUid = UserHandle.getCallingUserId();
+         int myUid = UserHandle.myUserId();
+         if (VDBG) {
+@@ -472,7 +493,11 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
          }
      }
  
@@ -8649,27 +8883,7 @@ index 354b20a..0cf6346 100644
          synchronized (mRecords) {
              final int recordCount = mRecords.size();
              for (int i = 0; i < recordCount; i++) {
-@@ -551,6 +569,9 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-             }
-             if (validatePhoneId(phoneId)) {
-                 mServiceState[phoneId] = state;
-+                // BEGIN privacy-added
-+                mServiceState[phoneId].setOperatorName("", "", "");
-+                // END privacy-added
-                 logServiceStateChanged("notifyServiceStateForSubscriber", subId, phoneId, state);
-                 if (VDBG) toStringLogSSC("notifyServiceStateForSubscriber");
- 
-@@ -568,6 +589,9 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
-                                         + " subId=" + subId + " phoneId=" + phoneId
-                                         + " state=" + state);
-                             }
-+                            // BEGIN privacy-added
-+                            state.setOperatorName("", "", "");
-+                            // END privacy-added
-                             r.callback.onServiceStateChanged(new ServiceState(state));
-                         } catch (RemoteException ex) {
-                             mRemoveList.add(r.binder);
-@@ -1134,7 +1158,11 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+@@ -1134,7 +1159,11 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
      // the legacy intent broadcasting
      //
  
@@ -8682,7 +8896,7 @@ index 354b20a..0cf6346 100644
          long ident = Binder.clearCallingIdentity();
          try {
              mBatteryStats.notePhoneState(state.getState());
-@@ -1267,7 +1295,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+@@ -1267,7 +1296,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
                  android.Manifest.permission.READ_PRECISE_PHONE_STATE);
      }
  
@@ -8694,7 +8908,7 @@ index 354b20a..0cf6346 100644
          if (mContext.checkCallingOrSelfPermission(android.Manifest.permission.MODIFY_PHONE_STATE)
                  == PackageManager.PERMISSION_GRANTED) {
              return true;
-@@ -1278,7 +1309,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+@@ -1278,7 +1310,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
          return false;
      }
  
@@ -8706,7 +8920,7 @@ index 354b20a..0cf6346 100644
          if ((events & PhoneStateListener.LISTEN_CELL_LOCATION) != 0) {
              mContext.enforceCallingOrSelfPermission(
                      android.Manifest.permission.ACCESS_COARSE_LOCATION, null);
-@@ -1308,7 +1342,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+@@ -1308,7 +1343,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
          }
      }
  
@@ -8718,6 +8932,64 @@ index 354b20a..0cf6346 100644
          if (mRemoveList.size() > 0) {
              for (IBinder b: mRemoveList) {
                  remove(b);
+@@ -1317,7 +1355,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+         }
+     }
+ 
+-    private boolean validateEventsAndUserLocked(Record r, int events) {
++    // BEGIN privacy-modified
++    // made protected to allow subclassing
++    protected boolean validateEventsAndUserLocked(Record r, int events) {
++    // END privacy-modified
+         int foregroundUser;
+         long callingIdentity = Binder.clearCallingIdentity();
+         boolean valid = false;
+@@ -1335,13 +1376,19 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+         return valid;
+     }
+ 
+-    private boolean validatePhoneId(int phoneId) {
++    // BEGIN privacy-modified
++    // made protected to allow subclassing
++    protected boolean validatePhoneId(int phoneId) {
++    // END privacy-modified
+         boolean valid = (phoneId >= 0) && (phoneId < mNumPhones);
+         if (VDBG) log("validatePhoneId: " + valid);
+         return valid;
+     }
+ 
+-    private static void log(String s) {
++    // BEGIN privacy-modified
++    // made protected to allow subclassing
++    protected static void log(String s) {
++    // END privacy-modified
+         Rlog.d(TAG, s);
+     }
+ 
+@@ -1365,7 +1412,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+     private LogSSC logSSC [] = new LogSSC[10];
+     private int next = 0;
+ 
+-    private void logServiceStateChanged(String s, long subId, int phoneId, ServiceState state) {
++    // BEGIN privacy-modified
++    // made protected to allow subclassing
++    protected void logServiceStateChanged(String s, long subId, int phoneId, ServiceState state) {
++    // END privacy-modified
+         if (logSSC == null || logSSC.length == 0) {
+             return;
+         }
+@@ -1380,7 +1430,10 @@ class TelephonyRegistry extends ITelephonyRegistry.Stub {
+         }
+     }
+ 
+-    private void toStringLogSSC(String prompt) {
++    // BEGIN privacy-modified
++    // made protected to allow subclassing
++    protected void toStringLogSSC(String prompt) {
++    // END privacy-modified
+         if (logSSC == null || logSSC.length == 0 || (next == 0 && logSSC[next] == null)) {
+             log(prompt + ": logSSC is empty");
+         } else {
 diff --git a/services/core/java/com/android/server/am/BroadcastQueue.java b/services/core/java/com/android/server/am/BroadcastQueue.java
 index 6045fd6..43337f8 100644
 --- a/services/core/java/com/android/server/am/BroadcastQueue.java
